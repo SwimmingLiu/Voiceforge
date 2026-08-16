@@ -1,0 +1,4 @@
+interface:
+  display_name: "Voiceforge"
+  short_description: "从知识库检索人类样本，学习用户确认的个人文风并持续改进"
+  default_prompt: "使用 $voiceforge，根据任务证据和已确认的人类写作方法完成这份成稿；如果知识库已有我确认的样本，再遵循我的写作习惯。"
