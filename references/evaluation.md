@@ -14,13 +14,13 @@ A writing-system change passes only when it preserves task facts and user constr
 increase privacy or attribution risk, and reduces the user's expected editing work. Style scores
 cannot compensate for a factual failure.
 
-Treat rights compatibility as part of attribution risk. A test fails if an incompatible human
-reference reaches drafting, or if a restricted source reaches a task whose intended use is
-unknown, even when the resulting prose does not contain a long quotation.
+Treat rights compatibility as part of attribution risk. A test fails if any human reference
+directly shapes task output, or if curator research bypasses the declared intended-use restrictions,
+even when the resulting prose does not contain a long quotation.
 
-Use `voice_memory.py validate` to distinguish registry health from operational readiness. Do not
-claim the system is ready merely because the schema is healthy. Automatic integration requires
-all of these independent gates:
+Use `voice_memory.py validate` to distinguish registry health from personalization maturity. Do not
+claim that the personal profile is mature merely because the schema is healthy. A mature
+personalization claim requires all of these independent gates:
 
 | Gate | Minimum evidence |
 | --- | --- |
@@ -31,7 +31,8 @@ all of these independent gates:
 | Rollout | At least 1 user-confirmed passing holdout evaluation |
 
 Until every gate passes, `readiness.activation.mode` must remain `shadow`. A healthy registry or
-a passing synthetic test does not authorize a global routing change.
+a passing synthetic test does not establish a mature personal profile. Shadow mode does not disable
+Voiceforge, its universal layer, or eligible confirmed personal evidence; it limits maturity claims.
 
 ## Test set
 
@@ -105,6 +106,6 @@ does not match the holdout.
   regression tests. Keep personal preferences in the profile instead.
 - Roll back a change that reduces factual fidelity or increases editing burden, even if surface
   style similarity improves.
-- Keep the default writing route unchanged while activation is `shadow`. When the machine gate
-  becomes `active`, review the evidence once more before deliberately routing external writing
-  requests through `Voiceforge`; retain `oil-tone` as a compatibility linter.
+- Keep the universal Voiceforge layer active regardless of personalization readiness. When the
+  machine gate becomes `active`, treat that as permission to describe the personal profile as
+  mature; it does not change routing. Retain `oil-tone` only as a legacy compatibility entry.

@@ -66,7 +66,7 @@ never be copied into the source text or treated as an author's own rule.
 Each active card is one JSON object inside a `jsonl` block:
 
 ```jsonl
-{"kind":"human-technique","id":"technique-example","corpus_id":"human-example","status":"confirmed","approval":"curator-confirmed","collection_id":"example-book","techniques":["先解释机制存在的理由","把例外放在对应规则附近"],"technique_basis":"Codex curator inference from the preserved source; retrieval cue only.","created":"2026-08-15"}
+{"kind":"human-technique","id":"technique-example","corpus_id":"human-example","status":"confirmed","approval":"curator-confirmed","collection_id":"example-book","techniques":["Explain why the mechanism exists before describing it","Place exceptions next to the relevant rule"],"technique_basis":"Codex curator inference from the preserved source; retrieval cue only.","created":"2026-08-15"}
 ```
 
 `corpus_id` must point to a confirmed `human-reference`. `techniques` contains at most 12 short
@@ -80,7 +80,8 @@ as the authoritative evidence.
 
 - `personal`: May shape the user's voice. A confirmed entry must use `authorship: user`,
   `approval: user-confirmed`, and `status: confirmed`.
-- `human-reference`: May teach writing technique but never personal identity or task facts.
+- `human-reference`: May support curator research for universal writing techniques but never
+  directly shape task output, personal identity, or task facts.
 - A confirmed `human-reference` must have `third-party` authorship, curator approval, an allowed
   reference use, an external source URL, and a medium/high-confidence origin claim of
   `pre-generative-ai`, `attributed-human`, or `human-edited`.

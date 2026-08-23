@@ -16,7 +16,7 @@ canonical and generated retrieval output as disposable.
 Use this record shape:
 
 ```jsonl
-{"kind":"preference","id":"preference-example","text":"先说明机制，再给出例子。","status":"confirmed","approval":"user-confirmed","basis":"explicit-user-statement","evidence":[],"language":"zh","genre":"technical-article","audience":"public","created":"2026-08-15"}
+{"kind":"preference","id":"preference-example","text":"Explain the mechanism before giving an example.","status":"confirmed","approval":"user-confirmed","basis":"explicit-user-statement","evidence":[],"language":"en","genre":"technical-article","audience":"public","created":"2026-08-15"}
 ```
 
 Keep `text` as a concrete instruction. Scope it only as narrowly as the evidence supports.
@@ -62,6 +62,9 @@ resolve conflicts in this order:
 1. Follow the user's latest instruction for the current task.
 2. Follow a directly confirmed scoped preference.
 3. Follow confirmed personal samples.
-4. Use human references for techniques not settled above.
+4. Use the universal writing rules for everything not settled above.
+
+Human references are curator research inputs for maintaining the universal layer. They do not
+directly shape task output or act as a fallback style source.
 
 Never use a preference record as evidence for a factual claim.

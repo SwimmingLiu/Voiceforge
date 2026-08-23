@@ -3,9 +3,9 @@
   <p><em>Reduce generic AI phrasing. Learn personal expression.</em></p>
 </div>
 
-Voiceforge is a writing Skill for Chinese and English writing. It helps an LLM produce less
-generic, more personal text by retrieving relevant human writing methods and learning from
-user-confirmed samples and explicit preferences for the current task.
+Voiceforge reduces generic AI writing in Chinese and English through two cumulative layers. Its
+universal layer contains a complete fixed writing and editing baseline. Its optional personalized
+layer retrieves user-confirmed samples, preferences, and feedback from a Markdown knowledge base.
 
 It applies a personal voice only when authorship and current representativeness are confirmed.
 Account ownership, publication location, and silence are not treated as proof of a writing style.
@@ -21,9 +21,12 @@ contain a user's articles, voice profile, corpus registry, feedback journal, or 
 
 Use Voiceforge when a writing task needs more than a generic style prompt:
 
+- apply a complete universal anti-AI writing baseline to every draft or edit;
+- make targeted additions, deletions, replacements, moves, structural changes, corrections, or
+  feedback-driven edits without changing unaffected content;
 - reduce generic AI phrasing while preserving facts and user constraints;
 - learn personalized expression from confirmed writing samples and explicit preferences;
-- retrieve human-authored writing methods for a specific language, genre, audience, and purpose;
+- maintain universal writing techniques from provenance-reviewed human references;
 - draft, revise, and compare text against approved writing;
 - preserve explicit feedback without turning unconfirmed signals into permanent rules.
 
@@ -37,7 +40,8 @@ The system keeps different kinds of writing evidence in separate channels:
 
 - **Task evidence** supplies claims, examples, and conclusions.
 - **Confirmed personal samples** shape voice, rhythm, structure, and recurring preferences.
-- **Human references** contribute writing methods, never the user's identity, opinions, or facts.
+- **Human references** support curator research for the universal layer; they do not directly shape
+  task output or contribute the user's identity, opinions, or facts.
 - **Feedback and negative samples** record what the user explicitly prefers or rejects.
 
 The system does not infer personal authorship from an account name, publication location, or
@@ -66,7 +70,7 @@ Retrieve scoped style evidence for a writing task:
 python3 scripts/voice_memory.py context \
   --vault /path/to/knowledge-base \
   --language zh --genre technical-article --audience public \
-  --intended-use unknown --query "主题和写作目的"
+  --intended-use unknown --query "topic and writing purpose"
 ```
 
 When the task facts already exist in a source or journal record, prepare them separately from
@@ -77,29 +81,31 @@ python3 scripts/voice_memory.py prepare \
   --vault /path/to/knowledge-base \
   --fact-packet 02-sources/fact-packet.md \
   --language zh --genre technical-article --audience public \
-  --intended-use unknown --query "主题和写作目的"
+  --intended-use unknown --query "topic and writing purpose"
 ```
 
 ## How It Works
 
-1. Locate and validate the Markdown vault.
-2. Classify the request by language, genre, audience, channel, purpose, and intended use.
-3. Retrieve a small, scope-aware context. Claims go to `fact_evidence`; expression guidance goes
-   to `style_context`.
-4. Draft from task evidence, then express the information order through the eligible style
-   evidence. Candidate personal samples never act as fallback evidence.
-5. Analyze the draft and finish with factual, privacy, citation, audience, and constraint checks.
+1. Read and apply the complete universal rules in `references/universal-writing-rules.md`.
+2. Look for a valid Markdown vault and classify the request by language, genre, audience, channel,
+   purpose, and intended use. A missing vault is valid.
+3. When eligible personal evidence exists, retrieve a small, scope-aware context and use it to shape
+   voice, rhythm, and structure. Candidate personal samples never act as fallback evidence.
+4. When personal evidence is absent, draft directly from task facts and the universal layer.
+5. In both paths, review the result against the complete universal rules and run the bundled
+   `scripts/tone_lint.py`, using a file path or stdin for chat-only output. Personalization never
+   bypasses this final pass.
 6. Record feedback only after an explicit user revision, acceptance, rejection, or preference.
 
-Voiceforge remains in `shadow` activation mode until its machine-checked evidence gates pass. A
-healthy registry means the data follows the schema; it does not by itself prove that the personal
-profile is mature or ready to replace the default writing route.
+Voiceforge and its universal layer remain available in every activation mode. `shadow` means only
+that the personal profile is provisional and must not be described as mature. A healthy registry
+means the data follows the schema; it does not by itself prove that personalization is mature.
 
 ## What It Contains
 
 | Layer | Role |
 | --- | --- |
-| Universal baseline | Preserves facts, uncertainty, complete relationships, privacy, and user constraints |
+| Universal writing layer | Contains the complete task, fact, wording, sentence, structure, format, deletion, and anti-AI expression rules |
 | Human writing library | Stores provenance, rights, scope, and short technique evidence |
 | Human Technique Index | Provides curator-maintained retrieval cues without becoming a hidden prompt |
 | Personal voice profile | Stores only user-confirmed samples and durable preferences |
@@ -120,8 +126,8 @@ Each user supplies a private Markdown vault. The usual records are:
 ```
 
 The registry stores paths and metadata, not a copied corpus. A user can run Voiceforge without
-confirmed personal samples; the Skill then uses the universal baseline and eligible human-reference
-techniques and treats the personal profile as provisional.
+confirmed personal samples; the Skill then uses the complete universal layer and treats the
+personal profile as provisional.
 
 ## Repository Layout
 
@@ -133,8 +139,11 @@ techniques and treats the personal profile as provisional.
 | `references/corpus-schema.md` | Registry and Human Technique Index schema |
 | `references/evaluation.md` | Test sets, rollout gates, and promotion criteria |
 | `references/preference-memory.md` | Confirmed preference storage and supersession rules |
+| `references/universal-writing-rules.md` | Complete universal anti-AI writing and editing baseline |
 | `scripts/voice_memory.py` | Deterministic registry, retrieval, feedback, and evaluation CLI |
+| `scripts/tone_lint.py` | Deterministic final lint for known universal writing failures and warnings |
 | `tests/test_voice_memory.py` | Regression tests for the CLI and memory rules |
+| `tests/test_tone_lint.py` | Regression tests for the bundled universal lint |
 
 ## Common Commands
 
@@ -164,10 +173,10 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 
 ## Relationship With oil-tone
 
-Voiceforge is the canonical Skill for evidence separation, scope-aware retrieval, controlled
-memory, and activation readiness. `oil-tone` remains the compatibility layer and deterministic
-final lint for the universal expression floor. It does not maintain a second personal-memory
-model or replace Voiceforge's evidence rules.
+Voiceforge now contains the complete capabilities previously supplied by `oil-tone`: the universal
+writing rules and deterministic lint are bundled as its required final layer. `oil-tone` remains a
+legacy compatibility entry that delegates writing work to Voiceforge. It is not a separate stage or
+an external dependency of the Voiceforge pipeline.
 
 ## Boundaries
 

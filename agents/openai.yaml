@@ -1,4 +1,4 @@
 interface:
   display_name: "Voiceforge"
-  short_description: "从知识库检索人类样本，学习用户确认的个人文风并持续改进"
-  default_prompt: "使用 $voiceforge，根据任务证据和已确认的人类写作方法完成这份成稿；如果知识库已有我确认的样本，再遵循我的写作习惯。"
+  short_description: "Remove AI-like writing with universal and personal style layers"
+  default_prompt: "Use $voiceforge to draft or edit this content with eligible personal style evidence when available, then always apply the complete universal writing rules and bundled lint."

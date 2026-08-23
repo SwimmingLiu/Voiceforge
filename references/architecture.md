@@ -11,23 +11,26 @@
 
 ## Design goal
 
-Replace a large fixed style rule list with a small invariant policy plus task-aware evidence.
-The system should generalize from real examples while preventing external prose, model output,
-or accidental edits from silently redefining the user's voice.
+Reduce generic AI writing through two cumulative layers: a complete universal writing baseline and
+optional task-aware personalization. The universal layer always applies. The personalized layer
+uses confirmed evidence without allowing external prose, model output, or accidental edits to
+silently redefine the user's voice.
 
 ## Six layers
 
 | Layer | Source of truth | Update rule |
 | --- | --- | --- |
-| Invariants | Skill instructions | Change deliberately and infrequently |
+| Universal writing layer | `references/universal-writing-rules.md` and `scripts/tone_lint.py` | Change deliberately and validate with the lint self-test |
 | Human writing library | Immutable source records and registry metadata | Add with author and provenance |
 | Human technique index | Curator-maintained cards linked to human sources | Add only as retrieval cues; never as source facts or universal rules |
 | Personal voice memory | User-confirmed final writing and explicit preferences | Add only after confirmation |
 | Task retrieval | Reproducible selection from the registry | Rebuild for every task |
 | Feedback and evaluation | Append-only edit records and holdout tests | Promote after evidence |
 
-Invariants cover factual fidelity, privacy, source separation, and preservation of the user's
-latest request. They are not an exhaustive catalog of natural language.
+The universal writing layer contains the complete fixed task, fact, narrative, wording, sentence,
+structure, heading, formatting, deletion, and anti-AI expression baseline. It applies before and
+after optional personalization. The deterministic linter covers known patterns; manual review
+applies the full rule set.
 
 The human writing library supplies genre techniques such as how an explanation introduces a
 term, moves from mechanism to example, or ends a section. It never supplies personal identity
@@ -42,28 +45,29 @@ append-only records so they can be retrieved, scoped, superseded, and audited.
 
 ## Generation flow
 
-1. Extract task facts and uncertain claims. If the facts are preserved in the vault, search
+1. Load the complete universal writing rules.
+2. Extract task facts and uncertain claims. If the facts are preserved in the vault, search
    maintained concepts/projects and relevant source records first, then use `prepare` to emit
    a bounded `fact_evidence` section before retrieving style evidence.
-2. Classify language, genre, audience, channel, and purpose.
-3. Retrieve confirmed personal samples and rights-compatible human references into separate sections;
-   use the separate human technique index only to rank relevant excerpts and diversify collections.
-4. Plan content from task facts.
-5. Draft using personal evidence; borrow only general techniques from human references.
-6. Compare the draft with the profile and negative evidence.
-7. Verify facts, privacy, citations, and user constraints.
+3. Classify language, genre, audience, channel, and purpose.
+4. Retrieve confirmed personal samples for optional personalization. Keep any returned human
+   references in the curator-research channel; they do not shape the task draft.
+5. Plan content from task facts.
+6. When eligible personal evidence exists, draft with it. Otherwise draft directly with the
+   universal layer without adding another style source.
+7. When personalization was used, compare the draft with the profile and negative evidence.
+8. Apply the complete universal rules again, verify facts, privacy, citations, and user constraints,
+   then run the bundled deterministic linter.
 
-Style retrieval follows metadata before topic similarity. A technical article about databases
+Personal style retrieval follows metadata before topic similarity. A technical article about databases
 usually benefits more from another confirmed technical explanation than from a social post about
 the same database. Rank scope mismatches instead of discarding them: return exact evidence first,
 then mark partial or fallback evidence explicitly when the exact corpus is sparse.
-Candidate personal material is never a sparse-corpus fallback. Before scoring human references,
-retrieval compares the task's declared intended use with each source's structured `allowed_uses`.
-Results carry their author, license, rights, and usage notes; excluded sources remain visible only
-as diagnostic IDs and cannot influence drafting. Third-party excerpts pass a retrieval-only hygiene
-ranker for accidental promotional, presentation-meta, or chat residue and return any risk flags with
-an explicit analysis-only copy policy. This filter does not lint the user's writing or define a new
-universal style rule.
+Candidate personal material is never a sparse-corpus fallback. Human-reference retrieval remains
+available for curator research and compares the declared intended use with each source's structured
+`allowed_uses`. Results carry author, license, rights, and usage notes; excluded sources remain
+visible only as diagnostic IDs. Third-party excerpts are analysis-only and cannot influence task
+drafting or create a third runtime style layer.
 
 Use `audit-corpus` before expanding the library. It reports exact/partial scope coverage, rights
 exclusions, missing technique cards, low-confidence confirmed origins, and registered candidates.
@@ -75,7 +79,8 @@ human reference, states that its labels are curator inference, and can group rel
 `collection_id`. The context interface returns the card labels together with the excerpt so the
 caller can inspect the evidence. When the first match is exact, fallback sources do not pad the
 result; when several candidates are similarly matched, the selector prefers distinct collections
-and penalizes near-duplicate technique sets.
+and penalizes near-duplicate technique sets. These results support curator analysis only; the
+generation flow does not apply them directly to task output.
 
 ## Learning flow
 
@@ -99,16 +104,17 @@ training data merely because the user did not edit them.
 
 ## Integration boundary
 
-`Voiceforge` is the intended external writing seam. It owns evidence separation, scope-aware
-retrieval, controlled memory, and activation readiness. `oil-tone` remains a small compatibility
-adapter and deterministic linter; it must not own a second personal-memory model.
+`Voiceforge` is the external writing seam. It owns both the complete universal writing layer and the
+optional personalized layer. `oil-tone` is a legacy compatibility entry and may retain fallback
+copies for older callers, but Voiceforge does not depend on that Skill at runtime. The canonical
+universal rules and linter for this project live inside Voiceforge.
 
 Integration has two modes:
 
 | Mode | Allowed behavior |
 | --- | --- |
-| `shadow` | Explicit `$voiceforge` tests and `$oil-tone` adapter delegation; no global route changes |
-| `active` | Eligible to become the default writing entry after a deliberate routing change |
+| `shadow` | Universal layer active; eligible confirmed personal evidence may be used, but the profile remains provisional |
+| `active` | Universal layer active; the personal profile has passed the maturity gates |
 
 `validate` reports the mode. Activation requires all five independent gates: a confirmed
 personal profile, a minimally diverse human-reference library, a confirmed holdout, at least one
@@ -117,11 +123,9 @@ must show zero candidate factual and constraint errors, lower document edit dist
 substantive edits than the baseline. Missing evidence, changed files, or mismatched metrics keep
 the system in shadow mode or make validation fail.
 
-Readiness authorizes a later integration decision; it does not mutate routing by itself. During
-`shadow`, a user who explicitly invokes `$oil-tone` may still receive the delegated `$voiceforge`
-path, while unrelated writing requests continue using their existing route.
-This keeps activation reproducible and prevents an agent from promoting the system from memory or
-subjective confidence.
+Readiness controls claims about personalization maturity, not Voiceforge routing or availability.
+The universal layer runs in both modes. This keeps activation reproducible and prevents an agent
+from promoting the personal profile from memory or subjective confidence.
 
 ## Non-goals
 
