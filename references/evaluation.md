@@ -1,111 +1,78 @@
-# Evaluation
+# 评估
 
-## Contents
+## 通过条件
 
-1. Gates
-2. Test set
-3. Measures
-4. Record a rollout evaluation
-5. Promotion decision
+写作系统的修改只有在满足以下条件时才算通过：保留任务事实和用户约束；不增加隐私、来源或版权风险；减少用户预期的修改工作。表面风格分数不能抵消事实错误。
 
-## Gates
+第三方参考的用途相容性属于来源风险。只要人类写作参考直接影响成稿，或维护研究绕过声明用途限制，即使没有长段引用，测试也应判定失败。
 
-A writing-system change passes only when it preserves task facts and user constraints, does not
-increase privacy or attribution risk, and reduces the user's expected editing work. Style scores
-cannot compensate for a factual failure.
+`voice_memory.py validate --workspace <目录>` 用于区分数据健康和个性化成熟。`healthy: true` 只代表格式有效。成熟个人风格必须独立满足以下门槛：
 
-Treat rights compatibility as part of attribution risk. A test fails if any human reference
-directly shapes task output, or if curator research bypasses the declared intended-use restrictions,
-even when the resulting prose does not contain a long quotation.
-
-Use `voice_memory.py validate` to distinguish registry health from personalization maturity. Do not
-claim that the personal profile is mature merely because the schema is healthy. A mature
-personalization claim requires all of these independent gates:
-
-| Gate | Minimum evidence |
+| 门槛 | 最低证据 |
 | --- | --- |
-| Personal profile | At least 3 confirmed personal documents and 2,000 usable characters |
-| Human library | At least 6 confirmed human references across 3 genres |
-| Holdout | At least 1 confirmed personal holdout excluded from retrieval |
-| Feedback | At least 1 explicitly user-confirmed before/after event |
-| Rollout | At least 1 user-confirmed passing holdout evaluation |
+| 个人配置 | 至少 3 份已确认个人文档，共 2,000 个可用字符 |
+| 人类参考库 | 至少 6 份已确认参考，覆盖 3 种体裁 |
+| 留出样本 | 至少 1 份不会参与检索的已确认个人样本 |
+| 反馈 | 至少 1 条由用户明确确认的前后修改记录 |
+| 发布评估 | 至少 1 次由用户确认并通过的留出样本评估 |
 
-Until every gate passes, `readiness.activation.mode` must remain `shadow`. A healthy registry or
-a passing synthetic test does not establish a mature personal profile. Shadow mode does not disable
-Voiceforge, its universal layer, or eligible confirmed personal evidence; it limits maturity claims.
+全部门槛通过前，`readiness.activation.mode` 必须保持 `shadow`。`shadow` 不会关闭 Voiceforge、通用层或合格个人证据，只限制系统宣称个人配置已经成熟。
 
-## Test set
+## 测试集
 
-Maintain four groups:
+维护四组样本：
 
-1. Confirmed personal samples used for retrieval and profile statistics.
-2. Personal holdout samples excluded from retrieval.
-3. Human reference samples covering the main genres and audiences.
-4. Negative samples containing rejected AI patterns and prior failure cases.
+1. 参与检索和个人统计的已确认个人样本；
+2. 不参与检索的个人留出样本；
+3. 覆盖主要体裁和受众的人类写作参考；
+4. 包含已拒绝 AI 表达和历史失败案例的负面样本。
 
-For each writing task, keep the same fact packet and compare the current Skill with the proposed
-change. Do not expose the expected final answer to the generating run.
+比较系统版本时，两边必须使用同一份事实材料，生成过程中不得向模型暴露预期最终答案。
 
-## Measures
+## 评估指标
 
-| Measure | Evidence |
+| 指标 | 判断依据 |
 | --- | --- |
-| Factual fidelity | Unsupported, altered, or omitted claims against the fact packet |
-| Constraint fidelity | Language, audience, length, format, privacy, and citation requirements |
-| Personal similarity | Preference judgment plus distance from holdout style features |
-| Generic-AI rate | Contextual review of unsupported framing, vague attribution, and empty endings |
-| Editing burden | User edit distance, number of substantive corrections, and rejection rate |
-| Generalization | Results across genres not used to create the proposed rule |
-| Scope calibration | Exact, partial, and fallback evidence are labeled and weighted appropriately |
-| Learning integrity | Only explicitly confirmed preferences become durable and superseded records stop applying |
-| Corpus integrity | Candidate personal samples remain unreachable; incompatible licenses are filtered before ranking; rights accompany every returned excerpt |
-| Retrieval quality | Returned excerpts contain a relevant substantive paragraph and a nearby supporting paragraph rather than disconnected keyword matches; technique cues improve method recall without letting fallback or same-collection duplicates fill the context; third-party excerpt risk flags are surfaced and do not become draft rules |
+| 事实保真 | 对照事实材料检查无依据、被改动或遗漏的内容 |
+| 约束保真 | 语言、受众、长度、格式、隐私和引用要求 |
+| 个人相似 | 用户偏好判断和相对留出样本的风格特征距离 |
+| AI 腔比例 | 空泛铺垫、模糊归因和无信息结尾的语境审查 |
+| 修改负担 | 用户编辑距离、实质修改数和拒绝率 |
+| 泛化 | 在未参与制定规则的体裁上测试 |
+| 范围校准 | 正确标记并加权精确、部分和候补证据 |
+| 学习完整性 | 只有明确确认的偏好成为长期记录，被替代记录停止生效 |
+| 语料完整性 | 候选个人样本不可检索；用途不相容的来源被过滤；结果携带权利信息 |
+| 检索质量 | 摘录包含相关实质段落及附近支撑内容，方法线索不越权成为成稿规则 |
 
-Quantitative style features are diagnostics, not a target function. A model can match sentence
-length and punctuation while missing the writer's reasoning habits.
+量化特征只用于诊断，不是优化目标。模型可以匹配句长和标点，却仍然误解作者的推理习惯。
 
-## Record a rollout evaluation
+## 记录发布评估
 
-Generate the baseline and candidate from the same fact packet without exposing the holdout final
-answer. After the user reviews the three documents, count substantive edits, factual errors, and
-constraint errors for both outputs. Preserve the review itself in a source or journal record.
+使用相同事实材料分别生成基线稿和候选稿，不向生成过程暴露留出最终稿。用户审核三份文档后，记录实质修改数、事实错误数和约束错误数，并保存审核依据。
 
-Preview first:
+先预览：
 
 ```bash
 python3 <skill-dir>/scripts/voice_memory.py evaluate-rollout \
-  --vault <vault> --baseline <baseline> --candidate <candidate> --final <holdout> \
-  --fact-packet <source-or-journal> --review-evidence <source-or-journal> \
-  --task-id <stable-id> --language <language> --genre <genre> --audience <audience> \
-  --baseline-substantive-edits <n> --candidate-substantive-edits <n> \
-  --baseline-factual-errors <n> --candidate-factual-errors <n> \
-  --baseline-constraint-errors <n> --candidate-constraint-errors <n> \
+  --workspace <目录> --baseline <基线稿> --candidate <候选稿> --final <留出最终稿> \
+  --fact-packet <事实记录> --review-evidence <审核记录> \
+  --task-id <任务-id> --language <语言> --genre <体裁> --audience <受众> \
+  --baseline-substantive-edits <数量> --candidate-substantive-edits <数量> \
+  --baseline-factual-errors <数量> --candidate-factual-errors <数量> \
+  --baseline-constraint-errors <数量> --candidate-constraint-errors <数量> \
   --reviewer user
 ```
 
-Use `--reviewer curator` for diagnostic review that must never activate the system. Add
-`--reviewer-confirmed --write` only after the named reviewer checks the evidence. Failed
-evaluations may be written and retained; negative results are part of the audit trail.
+维护者诊断使用 `--reviewer curator`，这种评估永远不能激活成熟状态。审核者确认后才可增加 `--reviewer-confirmed --write`。失败评估也可以保留，负面结果属于审计记录。
 
-The candidate passes only when it has zero factual errors, zero constraint errors, a lower edit
-ratio against the holdout final, and fewer substantive edits than the baseline. It qualifies for
-activation only when the confirmed reviewer is the user. The journal stores hashes for all five
-referenced documents and derived edit metrics. `validate` recomputes those values and rejects
-tampered metrics, changed documents, a final file that is not a confirmed holdout, or a scope that
-does not match the holdout.
+候选稿只有在事实错误和约束错误均为 0、相对最终稿的编辑比例低于基线稿、实质修改数也少于基线稿时才算通过。只有审核者为用户且明确确认时，这次评估才能满足激活门槛。
 
-## Promotion decision
+## 规则升级
 
-- Apply an explicit user preference immediately to the current task.
-- Add it to durable personal memory after explicit confirmation.
-- Promote an inferred preference only after at least three independent confirmed events and a
-  review of counterexamples.
-- Verify that a promoted preference appears in the next compatible `context` result and does not
-  appear as an exact match in incompatible scopes.
-- Change the universal Skill only when the behavior helps multiple genres or users and passes
-  regression tests. Keep personal preferences in the profile instead.
-- Roll back a change that reduces factual fidelity or increases editing burden, even if surface
-  style similarity improves.
-- Keep the universal Voiceforge layer active regardless of personalization readiness. When the
-  machine gate becomes `active`, treat that as permission to describe the personal profile as
-  mature; it does not change routing. Retain `oil-tone` only as a legacy compatibility entry.
+- 当前任务中立即执行用户明确提出的偏好；
+- 用户确认后才写入长期个人记录；
+- 推断偏好至少需要 3 条独立确认事件和反例审查；
+- 升级后验证其只在相容范围内准确返回；
+- 通用规则只有在多个体裁和多个用户场景中都有效时才可修改；
+- 任何降低事实保真或增加修改负担的变更都应撤回；
+- 无论个性化是否成熟，通用写作层始终启用。

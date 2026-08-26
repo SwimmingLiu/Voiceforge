@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report universal writing failures and context-sensitive warnings in Chinese copy."""
+"""检查中文内容中的通用写作问题，并报告需要结合语境判断的警告。"""
 
 from __future__ import annotations
 
@@ -13,38 +13,38 @@ from pathlib import Path
 Rule = tuple[re.Pattern[str], str]
 
 RULES: tuple[Rule, ...] = (
-    (re.compile(r"先保哪一个|(?:^|[，。！？；：、\s]|先|只|要|得|该|需要|应该|必须|优先)保(?:重点|逻辑|意思|准确|清楚|自然|风格|质量|结构)"), "Use a precise verb such as follow, preserve, or ensure."),
-    (re.compile(r"(?:一个|这个)?(?:代码)?问题.{0,8}怎么走"), "State how a code problem is usually handled."),
-    (re.compile(r"(?:线索|结果|结论|内容).{0,8}(?:带回来|丢回来|交回来)"), "Name who explains or submits which information."),
-    (re.compile(r"(?:先)?把(?:事实|证据).{0,8}(?:找出来|建立(?:起来)?)"), "Name the concrete action, such as inspecting calls, checking configuration, or confirming the implementation."),
-    (re.compile(r"(?:逻辑|流程).{0,6}跑(?:到|下去)"), "Use execute or describe the actual call relationship."),
-    (re.compile(r"(?:问题|流程|事情|能力|价值).{0,6}落(?:下去|到|地)"), "Describe the concrete implementation or handling action."),
-    (re.compile(r"(?:吃下|吞下).{0,10}(?:对话|内容|信息|上下文)"), "Use a precise verb such as read, receive, or contain."),
-    (re.compile(r"(?:把)?(?:内容|信息|上下文).{0,8}(?:塞进|塞到|喂给)"), "Use a precise verb such as write, add, or provide."),
-    (re.compile(r"跑测试"), "Use the standard expression for running tests."),
-    (re.compile(r"(?:搞|弄)(?:顺|清楚|明白|好|完|懂|定|起来|下去)"), "Name the concrete action and result instead of using a vague single-character verb."),
-    (re.compile(r"承接(?:需求|任务|工作|内容)"), "Use a precise verb such as handle, own, or implement."),
-    (re.compile(r"(?:赋能|撬动|抓手|闭环|沉淀价值|价值落地)"), "Remove promotional jargon and state the concrete effect."),
-    (re.compile(r"原因很简单[：:，,。]?"), "Remove the formulaic lead-in and state the actual reason."),
-    (re.compile(r"(?:真正重要的是|真正的关键是|这不仅仅?是|从更大的角度看)"), "Remove a summary or uplift that adds no information."),
-    (re.compile(r"任务.{0,12}停在[“\"]?代码已经写出来"), "State which checks continue after Codex finishes the code."),
+    (re.compile(r"先保哪一个|(?:^|[，。！？；：、\s]|先|只|要|得|该|需要|应该|必须|优先)保(?:重点|逻辑|意思|准确|清楚|自然|风格|质量|结构)"), "改用遵循、保留、确保等准确动词。"),
+    (re.compile(r"(?:一个|这个)?(?:代码)?问题.{0,8}怎么走"), "直接说明通常如何处理代码问题。"),
+    (re.compile(r"(?:线索|结果|结论|内容).{0,8}(?:带回来|丢回来|交回来)"), "说明由谁解释或提交哪些信息。"),
+    (re.compile(r"(?:先)?把(?:事实|证据).{0,8}(?:找出来|建立(?:起来)?)"), "写明具体动作，例如查看调用、检查配置或确认实现。"),
+    (re.compile(r"(?:逻辑|流程).{0,6}跑(?:到|下去)"), "改用执行，或直接说明实际调用关系。"),
+    (re.compile(r"(?:问题|流程|事情|能力|价值).{0,6}落(?:下去|到|地)"), "说明具体的实现或处理动作。"),
+    (re.compile(r"(?:吃下|吞下).{0,10}(?:对话|内容|信息|上下文)"), "改用读取、接收、包含等准确动词。"),
+    (re.compile(r"(?:把)?(?:内容|信息|上下文).{0,8}(?:塞进|塞到|喂给)"), "改用写入、添加、提供等准确动词。"),
+    (re.compile(r"跑测试"), "使用“运行测试”等规范表达。"),
+    (re.compile(r"(?:搞|弄)(?:顺|清楚|明白|好|完|懂|定|起来|下去)"), "不要使用含义模糊的单字动词，写明具体动作和结果。"),
+    (re.compile(r"承接(?:需求|任务|工作|内容)"), "改用处理、负责、实现等准确动词。"),
+    (re.compile(r"(?:赋能|撬动|抓手|闭环|沉淀价值|价值落地)"), "删除宣传式术语，直接说明具体效果。"),
+    (re.compile(r"原因很简单[：:，,。]?"), "删除套话，直接说明实际原因。"),
+    (re.compile(r"(?:真正重要的是|真正的关键是|这不仅仅?是|从更大的角度看)"), "删除没有新增信息的总结或拔高。"),
+    (re.compile(r"任务.{0,12}停在[“\"]?代码已经写出来"), "说明代码完成后还需要继续执行哪些检查。"),
 )
 
 WARNING_RULES: tuple[Rule, ...] = (
-    (re.compile(r"(?:在当今|在当前).{0,16}(?:时代|背景|环境)下"), "Keep this background only if it supplies necessary information."),
-    (re.compile(r"随着.{0,16}(?:不断|持续)(?:发展|演变|变化)"), "Confirm that the claimed change has a concrete relationship to what follows."),
-    (re.compile(r"(?:值得注意的是|需要指出的是|毋庸置疑|不可否认的是?)"), "Remove the fixed lead-in unless it performs a real qualification or transition."),
-    (re.compile(r"(?:标志着|代表着).{0,24}(?:重要|关键)(?:一步|时刻|转折点)"), "Replace the importance claim with the confirmed action, change, or result."),
-    (re.compile(r"为.{1,24}奠定(?:了)?(?:坚实的?)?基础"), "State the concrete condition or result that follows."),
-    (re.compile(r"(?:彰显|凸显|体现)(?:了)?.{0,20}(?:重要性|意义|价值)"), "Confirm that the material supports this importance claim."),
-    (re.compile(r"(?:业内|行业|专家|观察者)(?:普遍)?(?:认为|指出|表示)"), "Identify the source or remove the vague attribution."),
-    (re.compile(r"(?:很多|不少|部分)用户(?:认为|指出|表示|反馈)"), "Keep this user claim only when the task evidence identifies its source."),
-    (re.compile(r"(?:有|相关|多项|大量)研究(?:均)?(?:表明|显示|指出)"), "Identify the research source; do not invent one."),
-    (re.compile(r"(?:从而确保|进而体现|进一步彰显|反映了更深层次)"), "Keep this analytical tail only when the evidence supports its causality or judgment."),
-    (re.compile(r"尽管.{0,24}(?:挑战|困难).{0,24}(?:仍|依然|未来)"), "State the confirmed limitation, result, or next step directly."),
-    (re.compile(r"(?:未来可期|迈出(?:了)?(?:至关重要|重要|关键)的一步|开启(?:了)?(?:全新|新的?)篇章)"), "Remove the generic optimistic ending and state the result or next step."),
-    (re.compile(r"(?:当然可以|这是一个(?:非常|很)?好的问题|你说得(?:完全)?正确|希望这对(?:你|您)有帮助|如需更多(?:信息|帮助).{0,8}(?:请)?(?:随时)?(?:告诉我|联系我))"), "Remove chat residue or flattery from the reader-facing artifact."),
-    (re.compile(r"(?:可能|或许|也许|在一定程度上|在某种程度上).{0,8}(?:可能|或许|也许|在一定程度上|在某种程度上)"), "Merge repeated uncertainty markers while preserving the actual certainty level."),
+    (re.compile(r"(?:在当今|在当前).{0,16}(?:时代|背景|环境)下"), "只有这段背景提供必要信息时才保留。"),
+    (re.compile(r"随着.{0,16}(?:不断|持续)(?:发展|演变|变化)"), "确认所声称的变化与后文存在具体关系。"),
+    (re.compile(r"(?:值得注意的是|需要指出的是|毋庸置疑|不可否认的是?)"), "固定引导语没有承担限定或过渡作用时应删除。"),
+    (re.compile(r"(?:标志着|代表着).{0,24}(?:重要|关键)(?:一步|时刻|转折点)"), "用已确认的动作、变化或结果替代重要性声称。"),
+    (re.compile(r"为.{1,24}奠定(?:了)?(?:坚实的?)?基础"), "直接说明后续的具体条件或结果。"),
+    (re.compile(r"(?:彰显|凸显|体现)(?:了)?.{0,20}(?:重要性|意义|价值)"), "确认材料确实支持这项重要性判断。"),
+    (re.compile(r"(?:业内|行业|专家|观察者)(?:普遍)?(?:认为|指出|表示)"), "写明具体来源，或删除模糊归因。"),
+    (re.compile(r"(?:很多|不少|部分)用户(?:认为|指出|表示|反馈)"), "只有任务证据能够指出来源时，才保留这项用户声称。"),
+    (re.compile(r"(?:有|相关|多项|大量)研究(?:均)?(?:表明|显示|指出)"), "写明研究来源，不得编造。"),
+    (re.compile(r"(?:从而确保|进而体现|进一步彰显|反映了更深层次)"), "只有证据支持相应因果或判断时，才保留这段分析。"),
+    (re.compile(r"尽管.{0,24}(?:挑战|困难).{0,24}(?:仍|依然|未来)"), "直接说明已确认的限制、结果或下一步。"),
+    (re.compile(r"(?:未来可期|迈出(?:了)?(?:至关重要|重要|关键)的一步|开启(?:了)?(?:全新|新的?)篇章)"), "删除泛泛的乐观结尾，改写为结果或下一步。"),
+    (re.compile(r"(?:当然可以|这是一个(?:非常|很)?好的问题|你说得(?:完全)?正确|希望这对(?:你|您)有帮助|如需更多(?:信息|帮助).{0,8}(?:请)?(?:随时)?(?:告诉我|联系我))"), "删除面向读者成稿中的聊天残留或恭维。"),
+    (re.compile(r"(?:可能|或许|也许|在一定程度上|在某种程度上).{0,8}(?:可能|或许|也许|在一定程度上|在某种程度上)"), "合并重复的不确定表达，并保留实际的不确定程度。"),
 )
 
 
@@ -169,25 +169,25 @@ def self_test() -> int:
         or warning_lines != set(range(1, len(warning_bad.splitlines()) + 1))
         or find_warnings(warning_good)
     ):
-        print("FAIL  tone lint self-test")
+        print("FAIL  表达检查自测")
         for failure in failures:
             print(f"      {failure}")
         for warning in warnings:
             print(f"      {warning}")
         return 1
-    print("PASS  tone lint self-test")
+    print("PASS  表达检查自测")
     return 0
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check Chinese copy for known universal writing issues.")
-    parser.add_argument("files", nargs="*", help="UTF-8 files to scan, or - for stdin")
+    parser = argparse.ArgumentParser(description="检查中文内容中已知的通用写作问题。")
+    parser.add_argument("files", nargs="*", help="要检查的 UTF-8 文件；使用 - 表示标准输入")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         return self_test()
     if not args.files:
-        parser.error("provide one or more files, or use --self-test")
+        parser.error("请提供至少一个文件，或使用 --self-test")
     failed = False
     warned = False
     for name in args.files:
@@ -199,9 +199,9 @@ def main() -> int:
             print(f"WARN  {name}:{line_number}: {line}\n      {fix}")
             warned = True
     if not failed and not warned:
-        print("PASS  no known universal writing failures")
+        print("PASS  未发现已知的通用写作问题")
     elif not failed:
-        print("PASS  no confirmed universal writing failures; review warnings")
+        print("PASS  没有确定的通用写作问题；请结合语境检查警告")
     return 1 if failed else 0
 
 

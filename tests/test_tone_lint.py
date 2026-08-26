@@ -21,7 +21,7 @@ class ToneLintTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("PASS  tone lint self-test", result.stdout)
+        self.assertIn("PASS  表达检查自测", result.stdout)
 
     def test_cli_ignores_fenced_code_and_checks_visible_copy(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retrieve, measure, and record evidence for a knowledge-backed writing voice."""
+"""管理独立的 Voiceforge 风格工作区，并检索、分析和记录写作风格证据。"""
 
 from __future__ import annotations
 
@@ -71,8 +71,8 @@ STYLE_DELTA_THRESHOLDS = {
     "bold_per_1000": 0.15,
     "connectors_per_1000": 0.2,
 }
-# These cues are used only to rank excerpts from third-party human references. They are
-# evidence-hygiene signals, not universal writing rules and never lint the user's draft.
+# 这些线索只用于给第三方写作参考的摘录排序。它们用于控制证据质量，
+# 不是通用写作规则，也不会用于检查用户的草稿。
 REFERENCE_EXCERPT_RISK_PATTERNS: tuple[tuple[re.Pattern[str], float, str], ...] = (
     (
         re.compile(r"(?:吊打|碾压|秒杀|无敌|神器|牛逼|6\s*到\s*飞起|一图胜千言)"),
@@ -172,7 +172,7 @@ def source_body(text: str) -> str:
 
 
 def clean_markdown(text: str) -> str:
-    """Return visible prose while excluding code and presentation markup."""
+    """返回可见正文，并排除代码和展示用标记。"""
     text = source_body(text)
     kept: list[str] = []
     in_fence = False
@@ -551,8 +551,8 @@ def write_technique_record(
             f"updated: {today}\n"
             "sensitivity: private\n"
             "---\n\n"
-            "# Human Technique Index\n\n"
-            "Curator-inferred retrieval cues for confirmed human-reference sources.\n\n"
+            "# 人类写作方法索引\n\n"
+            "维护者根据已确认的人类写作参考归纳的检索线索。\n\n"
             "```jsonl\n"
             + json.dumps(record, ensure_ascii=False)
             + "\n```\n",
@@ -1186,20 +1186,19 @@ def corpus_readiness(
     )
     next_gates = []
     if not personal_ready:
-        next_gates.append("confirm at least three personal documents with 2,000 usable characters")
+        next_gates.append("确认至少 3 份个人文档，合计达到 2,000 个可用字符")
     if not human_ready:
         next_gates.append(
-            "confirm at least "
-            f"{MIN_HUMAN_REFERENCE_DOCUMENTS} human references across "
-            f"{MIN_HUMAN_REFERENCE_GENRES} genres"
+            f"确认至少 {MIN_HUMAN_REFERENCE_DOCUMENTS} 份人类写作参考，"
+            f"覆盖 {MIN_HUMAN_REFERENCE_GENRES} 种体裁"
         )
     if not holdout_ready:
-        next_gates.append("reserve at least one confirmed personal holdout document")
+        next_gates.append("至少保留 1 份已确认的个人留出文档")
     if not feedback_observed:
-        next_gates.append("record a real user-reviewed before/after writing event")
+        next_gates.append("记录 1 次由用户实际审核的前后修改事件")
     if not qualifying_evaluations:
         next_gates.append(
-            "record a user-confirmed holdout rollout evaluation with no factual errors and lower editing burden"
+            "记录 1 次由用户确认的留出样本评估，要求没有事实错误且修改负担更低"
         )
     return {
         "personal": {
@@ -1390,11 +1389,10 @@ def candidate_profile_for(
     genre: str | None = None,
     audience: str | None = None,
 ) -> dict[str, Any]:
-    """Return a review-only report for unconfirmed personal samples.
+    """返回未确认个人样本的只读审核报告。
 
-    Candidate material is intentionally summarized as metadata and measurable features.  This
-    command exists to help a user decide what to confirm; it must never become an alternate
-    drafting retrieval path or silently turn a candidate into a profile sample.
+    候选材料只汇总元数据和可量化特征。此命令只帮助用户决定确认哪些样本，
+    不得成为另一条成稿检索路径，也不得静默地把候选项变成个人配置样本。
     """
     scope = {"language": language, "genre": genre, "audience": audience}
     requested_language = normalize(language or "")
@@ -1461,13 +1459,11 @@ def candidate_profile_for(
 
 
 def candidate_recommendations(documents: list[dict[str, Any]]) -> dict[str, Any]:
-    """Suggest metadata-only review order without promoting any candidate.
+    """只根据元数据建议审核顺序，不升级任何候选项。
 
-    The recommendation is deliberately conservative: only entries already classified as
-    user-authored with at least medium origin confidence can be suggested for a personal
-    profile.  Mixed or low-confidence documents remain visible in ``documents_detail`` but
-    cannot become training or holdout recommendations.  The result contains no document text
-    and never changes the registry.
+    推荐逻辑有意保持保守：只有已经归类为用户创作、且来源置信度至少为中等的条目，
+    才能被建议进入个人配置。混合来源或低置信度文档仍显示在 ``documents_detail`` 中，
+    但不能成为训练样本或留出样本建议。结果不包含文档正文，也不会修改索引。
     """
     quality_order = {"exact": 0, "partial": 1, "fallback": 2, "unspecified": 3}
     confidence_order = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
@@ -1623,7 +1619,7 @@ def human_diversity_penalty(
 
 
 def human_origin_confidence_penalty(entry: dict[str, Any]) -> float:
-    """Prefer stronger human-origin evidence when scope and relevance are comparable."""
+    """范围和相关性相近时，优先使用来源证据更强的人类写作参考。"""
     return HUMAN_ORIGIN_CONFIDENCE_PENALTY.get(
         normalize(str(entry.get("origin_confidence", "unknown"))),
         2.0,
@@ -1686,10 +1682,10 @@ def paragraph_language_affinity(value: str, requested: str | None) -> float:
 
 
 def reference_excerpt_risk(value: str) -> tuple[float, list[str]]:
-    """Score accidental style baggage in a third-party reference excerpt.
+    """评估第三方参考摘录夹带无关风格特征的风险。
 
-    The score is deliberately local to retrieval. It does not decide whether a phrase is
-    acceptable in the user's own writing and it never becomes a draft lint rule.
+    分数只用于本次检索，不判断同样的表达是否适合用户自己的文章，
+    也不会成为草稿检查规则。
     """
     score = 0.0
     flags: list[str] = []
@@ -1963,7 +1959,7 @@ def feedback_events(vault: Path) -> list[dict[str, Any]]:
                     else:
                         changes.append(value)
         match = re.search(
-            r"^## Explicit preferences\s*$\n(.*?)(?=^## |\Z)",
+            r"^## (?:明确偏好|Explicit preferences)\s*$\n(.*?)(?=^## |\Z)",
             text,
             flags=re.MULTILINE | re.DOTALL,
         )
@@ -2086,7 +2082,7 @@ def activation_plan_payload(
     entries: list[dict[str, Any]],
     args: argparse.Namespace,
 ) -> dict[str, Any]:
-    """Build a read-only activation checklist without changing registry state."""
+    """构建只读的启用检查表，不改变索引状态。"""
     technique_records, technique_issues = read_technique_records(vault, entries)
     if technique_issues:
         raise ValueError(
@@ -2273,14 +2269,14 @@ def context_payload(
             },
         },
         "boundaries": [
-            "Use task evidence, not style samples, for factual claims.",
-            "Use human references for technique, not personal identity or distinctive wording.",
-            "Treat technique tags as curator retrieval cues, not rules or source claims.",
-            "Human references incompatible with the declared intended use were excluded before retrieval.",
-            "Use confirmed preferences as style guidance, never as task facts.",
-            "Treat fallback evidence as weaker than an exact scope match.",
-            "When scope and topic relevance are comparable, prefer high-confidence human origin over medium-confidence attribution.",
-            "Treat a provisional profile as weak evidence.",
+            "事实声称必须来自任务证据，不能来自风格样本。",
+            "人类写作参考只用于研究写作方法，不能提供个人身份或独特措辞。",
+            "方法标签是维护者检索线索，不是规则或来源声称。",
+            "与声明用途不相容的人类写作参考已在检索前排除。",
+            "已确认偏好只用于指导表达，不能作为任务事实。",
+            "候补证据的可信度低于范围精确匹配的证据。",
+            "范围和主题相关性相近时，优先使用高置信度的人类来源证据。",
+            "暂定个人配置只能作为较弱证据。",
         ],
     }
     return result
@@ -2624,11 +2620,11 @@ def command_analyze(args: argparse.Namespace) -> int:
         "profile": profile,
         "deviations": robust_deviations(features, profile),
         "interpretation": (
-            "Personal evidence is insufficient; use explicit preferences and retrieved examples."
+            "个人证据不足；请结合明确偏好和检索到的样本判断。"
             if profile["provisional"]
-            else "The general personal baseline is usable, but this task scope has weak exact evidence."
+            else "通用个人基线可用，但当前任务范围内的精确证据较弱。"
             if profile["scope_provisional"]
-            else "Metrics are diagnostics. Review material deviations against the actual examples."
+            else "量化指标只用于诊断；明显偏差应对照实际样本判断。"
         ),
     }
     print(json_dump(result))
@@ -2706,20 +2702,20 @@ def feedback_markdown(
         f"after_path: {yaml_string(relative_after)}",
         "---",
         "",
-        f"# Writing feedback: {args.task_id}",
+        f"# 写作反馈：{args.task_id}",
         "",
-        "## Signal",
+        "## 反馈信号",
         "",
-        f"- Verdict: `{args.verdict}`",
-        f"- Before: `{relative_before}`",
-        f"- After: `{relative_after}`",
+        f"- 结论：`{args.verdict}`",
+        f"- 修改前：`{relative_before}`",
+        f"- 修改后：`{relative_after}`",
     ]
     if args.note:
-        lines.append(f"- Note: {args.note}")
+        lines.append(f"- 备注：{args.note}")
     if preferences:
-        lines.extend(("", "## Explicit preferences", ""))
+        lines.extend(("", "## 明确偏好", ""))
         lines.extend(f"- {item}" for item in preferences)
-    lines.extend(("", "## Change pairs", "", "```jsonl"))
+    lines.extend(("", "## 修改对照", "", "```jsonl"))
     lines.append(
         json.dumps(
             {"kind": "style-delta", "metrics": recorded_style_delta},
@@ -2864,8 +2860,8 @@ def rollout_evaluation_markdown(record: dict[str, Any]) -> str:
     fact_link = Path(str(record["fact_packet"])).with_suffix("").as_posix()
     review_link = Path(str(record["review_evidence"])).with_suffix("").as_posix()
     final_link = Path(str(record["final_path"])).with_suffix("").as_posix()
-    outcome = "passed" if record["passed"] else "failed"
-    qualification = "yes" if record["qualifies_for_activation"] else "no"
+    outcome = "通过" if record["passed"] else "未通过"
+    qualification = "是" if record["qualifies_for_activation"] else "否"
     return "\n".join(
         [
             "---",
@@ -2886,24 +2882,24 @@ def rollout_evaluation_markdown(record: dict[str, Any]) -> str:
             f'  - "[[{final_link}]]"',
             "---",
             "",
-            f"# Rollout evaluation: {record['task_id']}",
+            f"# 发布评估：{record['task_id']}",
             "",
-            "## Result",
+            "## 结果",
             "",
-            f"- Outcome: `{outcome}`",
-            f"- Qualifies for activation: `{qualification}`",
-            f"- Reviewer: `{record['reviewer']}` (explicitly confirmed)",
-            f"- Baseline edit ratio: `{record['baseline_edit_ratio']}`",
-            f"- Candidate edit ratio: `{record['candidate_edit_ratio']}`",
-            f"- Editing improvement: `{record['editing_improvement']}`",
+            f"- 评估结果：`{outcome}`",
+            f"- 是否满足激活条件：`{qualification}`",
+            f"- 审核者：`{record['reviewer']}`（已明确确认）",
+            f"- 基线稿编辑比例：`{record['baseline_edit_ratio']}`",
+            f"- 候选稿编辑比例：`{record['candidate_edit_ratio']}`",
+            f"- 编辑改善幅度：`{record['editing_improvement']}`",
             "",
-            "## Evidence",
+            "## 证据",
             "",
-            f"- Fact packet: [[{fact_link}]]",
-            f"- Review evidence: [[{review_link}]]",
-            f"- Confirmed holdout: [[{final_link}]]",
+            f"- 事实材料：[[{fact_link}]]",
+            f"- 审核证据：[[{review_link}]]",
+            f"- 已确认留出样本：[[{final_link}]]",
             "",
-            "## Machine record",
+            "## 机器记录",
             "",
             "```jsonl",
             json.dumps(record, ensure_ascii=False),
@@ -3122,14 +3118,14 @@ def sample_confirmation_markdown(
             f"sample_role: {record['role']}",
             "---",
             "",
-            f"# Writing sample confirmation: {record['id']}",
+            f"# 写作样本确认：{record['id']}",
             "",
-            f"- Sample: [[{sample_link}]]",
-            f"- Evidence: [[{evidence_link}]]",
-            f"- Confirmation: {confirmation_note.strip()}",
-            "- The user confirmed both authorship and current representativeness.",
+            f"- 样本：[[{sample_link}]]",
+            f"- 证据：[[{evidence_link}]]",
+            f"- 确认说明：{confirmation_note.strip()}",
+            "- 用户已确认作者身份和样本当前代表性。",
             "",
-            "## Registry record",
+            "## 索引记录",
             "",
             "```jsonl",
             json.dumps(record, ensure_ascii=False),
@@ -3264,14 +3260,14 @@ def negative_confirmation_markdown(
             "reviewer_confirmed: true",
             "---",
             "",
-            f"# Negative writing sample confirmation: {record['id']}",
+            f"# 负面写作样本确认：{record['id']}",
             "",
-            f"- Sample: [[{sample_link}]]",
-            f"- Evidence: [[{evidence_link}]]",
-            f"- Rejection reason: {reason.strip()}",
-            "- The user confirmed that this sample is negative style evidence and must not shape positive voice retrieval.",
+            f"- 样本：[[{sample_link}]]",
+            f"- 证据：[[{evidence_link}]]",
+            f"- 拒绝原因：{reason.strip()}",
+            "- 用户已确认该样本属于负面风格证据，不得影响正向个人风格检索。",
             "",
-            "## Registry record",
+            "## 索引记录",
             "",
             "```jsonl",
             json.dumps(record, ensure_ascii=False),
@@ -3415,14 +3411,14 @@ def human_reference_confirmation_markdown(
             f"source_path: {yaml_string(str(record['path']))}",
             "---",
             "",
-            f"# Human reference confirmation: {record['id']}",
+            f"# 人类写作参考确认：{record['id']}",
             "",
-            f"- Source: [[{source_link}]]",
-            f"- Review evidence: [[{evidence_link}]]",
-            f"- Confirmation: {confirmation_note.strip()}",
-            "- The curator confirmed provenance, rights, human origin, scope, and technique suitability.",
+            f"- 来源：[[{source_link}]]",
+            f"- 审核证据：[[{evidence_link}]]",
+            f"- 确认说明：{confirmation_note.strip()}",
+            "- 维护者已确认来源、权利、人类作者依据、适用范围和写作方法适用性。",
             "",
-            "## Registry record",
+            "## 索引记录",
             "",
             "```jsonl",
             json.dumps(record, ensure_ascii=False),
@@ -3868,28 +3864,28 @@ def origin_suggestion(fields: dict[str, str], personal_state: str) -> tuple[str,
         return (
             "user-authored",
             "medium",
-            "author metadata matches a supplied personal identity; user confirmation is still required",
+            "作者元数据与提供的个人身份一致，但仍需用户确认",
         )
     if personal_state == "mixed":
         return (
             "mixed",
             "low",
-            "personal identity appears with other authors or curators; contribution boundaries need review",
+            "个人身份与其他作者或维护者同时出现，需要审核贡献边界",
         )
     year_match = re.match(r"(\d{4})", published)
     if year_match and int(year_match.group(1)) <= 2022:
         return (
             "pre-generative-ai",
             "high",
-            "publication date predates widespread generative-AI writing tools",
+            "发布日期早于生成式 AI 写作工具广泛使用的时期",
         )
     if author not in {"", "unknown"} and source_url not in {"", "unknown"}:
         return (
             "attributed-human",
             "low",
-            "named author and public provenance exist, but recent authorship cannot be verified from metadata alone",
+            "存在具名作者和公开来源，但仅凭元数据无法确认近期文本的作者身份",
         )
-    return ("unknown", "low", "authorship or publication provenance is incomplete")
+    return ("unknown", "low", "作者身份或发布来源信息不完整")
 
 
 def command_catalog(args: argparse.Namespace) -> int:
@@ -3963,19 +3959,19 @@ def command_catalog(args: argparse.Namespace) -> int:
             if registered:
                 suggested_role = str(registered.get("role", "unclassified"))
                 suggested_status = str(registered.get("status", "candidate"))
-                reason = "already registered; registry role and status take precedence"
+                reason = "已经登记，以索引中的角色和状态为准"
             elif likely_quoted_compilation:
                 suggested_role = "unclassified"
                 suggested_status = "candidate"
-                reason = "large quoted proportion; personal authorship of the prose is not established"
+                reason = "引用占比较高，无法确认正文属于个人原创"
             elif author_state == "exact" and not likely_non_prose:
                 suggested_role = "personal"
                 suggested_status = "candidate"
-                reason = "author metadata matches a supplied personal author; confirmation still required"
+                reason = "作者元数据与提供的个人作者一致，但仍需确认"
             elif author_state == "mixed":
                 suggested_role = "unclassified"
                 suggested_status = "candidate"
-                reason = "personal identity appears with other authors or curators"
+                reason = "个人身份与其他作者或维护者同时出现"
             elif (
                 location == "vault"
                 and path.is_relative_to(vault / "02-sources")
@@ -3984,14 +3980,14 @@ def command_catalog(args: argparse.Namespace) -> int:
             ):
                 suggested_role = "human-reference"
                 suggested_status = "candidate"
-                reason = "external source with author metadata"
+                reason = "带有作者元数据的外部来源"
             else:
                 suggested_role = "unclassified"
                 suggested_status = "candidate"
                 reason = (
-                    "source type is not a natural-prose sample"
+                    "来源类型不是自然语言文章样本"
                     if likely_non_prose
-                    else "authorship or suitability needs review"
+                    else "作者身份或适用性需要审核"
                 )
             origin_claim, origin_confidence, origin_basis = origin_suggestion(
                 fields, effective_author_state
@@ -4034,20 +4030,78 @@ def command_catalog(args: argparse.Namespace) -> int:
     return 0
 
 
+def add_workspace_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--workspace",
+        "--vault",
+        dest="vault",
+        required=True,
+        help="独立风格工作区路径；--vault 是兼容旧版本的别名",
+    )
+
+
 def add_registry_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--vault", required=True)
-    parser.add_argument("--registry")
+    add_workspace_argument(parser)
+    parser.add_argument("--registry", help="语料索引路径，默认使用工作区内置路径")
+
+
+def command_init(args: argparse.Namespace) -> int:
+    workspace = Path(args.vault).expanduser().resolve()
+    directories = (
+        DEFAULT_REGISTRY.parent,
+        Path("02-sources"),
+        Path("06-output/drafts"),
+        Path("06-output/published"),
+        FEEDBACK_DIR,
+        SAMPLE_CONFIRMATION_DIR,
+        NEGATIVE_CONFIRMATION_DIR,
+        HUMAN_REFERENCE_CONFIRMATION_DIR,
+        ROLLOUT_EVALUATION_DIR,
+    )
+    for relative in directories:
+        (workspace / relative).mkdir(parents=True, exist_ok=True)
+
+    templates = {
+        DEFAULT_REGISTRY: "# 语料索引\n\n```jsonl\n\n```\n",
+        DEFAULT_VOICE_PROFILE: "# 个人风格配置\n\n```jsonl\n\n```\n",
+        DEFAULT_TECHNIQUE_INDEX: "# 人类写作方法索引\n\n```jsonl\n\n```\n",
+    }
+    created: list[str] = []
+    existing: list[str] = []
+    for relative, content in templates.items():
+        target = workspace / relative
+        if target.exists():
+            existing.append(relative.as_posix())
+            continue
+        target.write_text(content, encoding="utf-8")
+        created.append(relative.as_posix())
+
+    print(
+        json_dump(
+            {
+                "workspace": str(workspace),
+                "created": created,
+                "existing": existing,
+                "message": "风格工作区已就绪。普通写作不需要配置此工作区。",
+            }
+        )
+    )
+    return 0
 
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
 
-    validate = commands.add_parser("validate", help="validate the corpus registry")
+    initialize = commands.add_parser("init", help="初始化独立风格工作区")
+    add_workspace_argument(initialize)
+    initialize.set_defaults(handler=command_init)
+
+    validate = commands.add_parser("validate", help="校验语料索引和风格工作区")
     add_registry_arguments(validate)
     validate.set_defaults(handler=command_validate)
 
-    profile = commands.add_parser("profile", help="measure confirmed personal samples")
+    profile = commands.add_parser("profile", help="统计已确认的个人写作样本")
     add_registry_arguments(profile)
     profile.add_argument("--language")
     profile.add_argument("--genre")
@@ -4056,7 +4110,7 @@ def parser() -> argparse.ArgumentParser:
 
     review_candidates = commands.add_parser(
         "review-candidates",
-        help="summarize unconfirmed personal samples for manual review without retrieval",
+        help="汇总未确认的个人样本，只供人工审核，不返回样本文本",
     )
     add_registry_arguments(review_candidates)
     review_candidates.add_argument("--language")
@@ -4066,7 +4120,7 @@ def parser() -> argparse.ArgumentParser:
 
     activation_plan = commands.add_parser(
         "activation-plan",
-        help="show a read-only activation checklist and safe candidate recommendations",
+        help="显示只读的启用检查表和安全的候选样本建议",
     )
     add_registry_arguments(activation_plan)
     activation_plan.add_argument("--language")
@@ -4074,7 +4128,7 @@ def parser() -> argparse.ArgumentParser:
     activation_plan.add_argument("--audience")
     activation_plan.set_defaults(handler=command_activation_plan)
 
-    context = commands.add_parser("context", help="retrieve separated style evidence")
+    context = commands.add_parser("context", help="按证据类型检索风格上下文")
     add_registry_arguments(context)
     context.add_argument("--language")
     context.add_argument("--genre")
@@ -4093,7 +4147,7 @@ def parser() -> argparse.ArgumentParser:
 
     prepare = commands.add_parser(
         "prepare",
-        help="build a separated fact-evidence and style-context package for one writing task",
+        help="为单次写作任务分别构建事实证据和风格上下文",
     )
     add_registry_arguments(prepare)
     prepare.add_argument("--fact-packet", action="append", required=True)
@@ -4115,7 +4169,7 @@ def parser() -> argparse.ArgumentParser:
 
     audit = commands.add_parser(
         "audit-corpus",
-        help="report human-reference coverage, rights, provenance, and technique gaps",
+        help="报告人类写作参考的覆盖范围、权利、来源和方法缺口",
     )
     add_registry_arguments(audit)
     audit.add_argument("--language")
@@ -4130,7 +4184,7 @@ def parser() -> argparse.ArgumentParser:
 
     technique = commands.add_parser(
         "curate-technique-card",
-        help="preview or write curator-confirmed methods for a human reference",
+        help="预览或写入由维护者确认的人类写作方法",
     )
     add_registry_arguments(technique)
     technique.add_argument("--corpus-id", required=True)
@@ -4141,7 +4195,7 @@ def parser() -> argparse.ArgumentParser:
     technique.add_argument("--write", action="store_true")
     technique.set_defaults(handler=command_curate_technique_card)
 
-    analyze = commands.add_parser("analyze", help="compare a draft with the personal profile")
+    analyze = commands.add_parser("analyze", help="比较草稿与个人风格配置")
     add_registry_arguments(analyze)
     analyze.add_argument("--file", required=True)
     analyze.add_argument("--language")
@@ -4149,8 +4203,8 @@ def parser() -> argparse.ArgumentParser:
     analyze.add_argument("--audience")
     analyze.set_defaults(handler=command_analyze)
 
-    feedback = commands.add_parser("feedback", help="preview or write an explicit feedback event")
-    feedback.add_argument("--vault", required=True)
+    feedback = commands.add_parser("feedback", help="预览或写入明确的用户反馈")
+    add_workspace_argument(feedback)
     feedback.add_argument("--before", required=True)
     feedback.add_argument("--after", required=True)
     feedback.add_argument("--verdict", choices=("accepted", "revised", "rejected"), required=True)
@@ -4166,7 +4220,7 @@ def parser() -> argparse.ArgumentParser:
 
     evaluate_rollout = commands.add_parser(
         "evaluate-rollout",
-        help="preview or write a reviewer-confirmed holdout rollout evaluation",
+        help="预览或写入经审核者确认的留出样本评估",
     )
     add_registry_arguments(evaluate_rollout)
     evaluate_rollout.add_argument("--baseline", required=True)
@@ -4190,18 +4244,18 @@ def parser() -> argparse.ArgumentParser:
     evaluate_rollout.set_defaults(handler=command_evaluate_rollout)
 
     candidates = commands.add_parser(
-        "feedback-candidates", help="find recurring exact edit and preference signals"
+        "feedback-candidates", help="查找重复出现的明确修改和偏好信号"
     )
-    candidates.add_argument("--vault", required=True)
+    add_workspace_argument(candidates)
     candidates.add_argument("--min-count", type=int, default=3)
     candidates.add_argument("--min-consistency", type=float, default=0.75)
     candidates.set_defaults(handler=command_feedback_candidates)
 
     promote = commands.add_parser(
         "promote-preference",
-        help="preview or persist a user-confirmed durable writing preference",
+        help="预览或保存用户确认的长期写作偏好",
     )
-    promote.add_argument("--vault", required=True)
+    add_workspace_argument(promote)
     promote.add_argument("--profile")
     promote.add_argument("--text", required=True)
     promote.add_argument("--language")
@@ -4218,7 +4272,7 @@ def parser() -> argparse.ArgumentParser:
 
     promote_sample = commands.add_parser(
         "promote-sample",
-        help="preview or persist a user-confirmed personal or holdout writing sample",
+        help="预览或保存用户确认的个人样本或留出样本",
     )
     add_registry_arguments(promote_sample)
     promote_sample.add_argument("--path", required=True)
@@ -4240,7 +4294,7 @@ def parser() -> argparse.ArgumentParser:
 
     promote_negative = commands.add_parser(
         "promote-negative",
-        help="preview or persist a user-confirmed rejected writing sample",
+        help="预览或保存用户明确拒绝的写作样本",
     )
     add_registry_arguments(promote_negative)
     promote_negative.add_argument("--path", required=True)
@@ -4258,7 +4312,7 @@ def parser() -> argparse.ArgumentParser:
 
     promote_human = commands.add_parser(
         "promote-human-reference",
-        help="preview or persist a curator-confirmed human writing reference",
+        help="预览或保存维护者确认的人类写作参考",
     )
     add_registry_arguments(promote_human)
     promote_human.add_argument("--path", required=True)
@@ -4284,8 +4338,8 @@ def parser() -> argparse.ArgumentParser:
     promote_human.add_argument("--write", action="store_true")
     promote_human.set_defaults(handler=command_promote_human_reference)
 
-    catalog = commands.add_parser("catalog", help="discover possible Markdown style samples")
-    catalog.add_argument("--vault", required=True)
+    catalog = commands.add_parser("catalog", help="发现可能的 Markdown 风格样本")
+    add_workspace_argument(catalog)
     catalog.add_argument("--personal-author", action="append", default=[])
     catalog.add_argument("--external-root", action="append", default=[])
     catalog.add_argument("--max-documents", type=int, default=500)

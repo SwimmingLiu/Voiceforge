@@ -1,4 +1,4 @@
 interface:
   display_name: "Voiceforge"
-  short_description: "Remove AI-like writing with universal and personal style layers"
-  default_prompt: "Use $voiceforge to draft or edit this content with eligible personal style evidence when available, then always apply the complete universal writing rules and bundled lint."
+  short_description: "用通用写作规则减少 AI 腔，并按需使用个人风格"
+  default_prompt: "使用 $voiceforge 起草或修改这段内容。普通任务不要读取个人知识库；只有我明确要求并提供已确认样本或独立风格工作区时，才使用个人风格。最后执行完整通用写作规则和内置检查。"

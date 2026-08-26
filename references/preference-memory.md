@@ -1,70 +1,51 @@
-# Preference memory
+# 长期写作偏好
 
-## Contents
+## 保存位置
 
-1. Store durable preferences
-2. Promote with evidence
-3. Supersede obsolete preferences
-4. Retrieve and apply
+已确认偏好保存在独立风格工作区的：
 
-## Store durable preferences
+`05-areas/writing-style/Voice Profile.md`
 
-Store confirmed preference records in `05-areas/writing-style/Voice Profile.md`. Keep the
-human-readable profile and an append-only `jsonl` block in the same note. Treat Markdown as
-canonical and generated retrieval output as disposable.
+普通写作不需要这个文件，也不会自动寻找知识库中的同名文档。用户需要持久化个人风格时，先用 `voice_memory.py init --workspace <目录>` 创建工作区。
 
-Use this record shape:
+在人类可读说明之后，用一个追加式 `jsonl` 代码块保存记录：
 
 ```jsonl
-{"kind":"preference","id":"preference-example","text":"Explain the mechanism before giving an example.","status":"confirmed","approval":"user-confirmed","basis":"explicit-user-statement","evidence":[],"language":"en","genre":"technical-article","audience":"public","created":"2026-08-15"}
+{"kind":"preference","id":"preference-example","text":"先解释机制，再给例子。","status":"confirmed","approval":"user-confirmed","basis":"explicit-user-statement","evidence":[],"language":"zh","genre":"technical-article","audience":"public","created":"2026-08-15"}
 ```
 
-Keep `text` as a concrete instruction. Scope it only as narrowly as the evidence supports.
-Never store task facts, inferred identity, or a model-generated phrase as a preference.
+`text` 必须是具体、可执行的写作要求。范围只能窄到证据支持的程度。不得把任务事实、推测身份或模型生成的句子写成个人偏好。
 
-## Promote with evidence
+## 升级门槛
 
-Apply these gates:
-
-| Basis | Evidence gate | Confirmation gate |
+| 依据 | 证据要求 | 确认要求 |
 | --- | --- | --- |
-| `explicit-user-statement` | Preserve an evidence link when one exists | Require the user's explicit confirmation |
-| `repeated-feedback` | Cite at least three distinct records under `08-journal/writing-feedback/` | Require the user to review and confirm the inferred preference |
+| `explicit-user-statement` | 有证据链接时保留链接 | 用户明确确认 |
+| `repeated-feedback` | 至少引用 3 条不同的已确认反馈记录 | 用户审核并确认推断出的偏好 |
 
-Preview before writing:
+先预览：
 
 ```bash
 python3 <skill-dir>/scripts/voice_memory.py promote-preference \
-  --vault <vault> --text "<durable preference>" \
+  --workspace <目录> --text "<长期偏好>" \
   --language zh --genre technical-article --audience public \
   --basis repeated-feedback \
-  --evidence <feedback-1> --evidence <feedback-2> --evidence <feedback-3>
+  --evidence <反馈-1> --evidence <反馈-2> --evidence <反馈-3>
 ```
 
-Add `--user-confirmed --write` only after receiving that confirmation. Do not infer the flag
-from silence, lack of further edits, or a model's judgment. Repeat the same command safely;
-the record ID is deterministic and duplicate writes are no-ops. For `repeated-feedback`, every
-evidence file must itself be a verified journal with `reviewer: user` and
-`reviewer_confirmed: true`; manually supplied or legacy unconfirmed paths are rejected.
+只有获得确认后，才能增加 `--user-confirmed --write`。用户沉默、没有继续修改或模型自行判断都不能代替确认。记录 ID 是确定的，重复执行相同写入应保持幂等。
 
-## Supersede obsolete preferences
+## 替代过期偏好
 
-Preserve history instead of editing an old record. Promote the replacement with
-`--supersedes <old-preference-id>`. Let retrieval ignore the superseded record. Keep the old
-record so later review can reconstruct when and why the preference changed.
+不要直接改写旧记录。用 `--supersedes <旧偏好-id>` 写入新偏好，让检索忽略被替代记录。保留旧记录，便于日后追溯偏好在何时、为何变化。
 
-## Retrieve and apply
+## 检索和应用顺序
 
-Read `confirmed_preferences` from the `context` command before drafting. Apply an exact scope
-match before a partial or fallback match. Treat a fallback preference as weak evidence and
-resolve conflicts in this order:
+从 `context` 返回的 `confirmed_preferences` 中读取偏好。精确范围匹配优先于部分匹配和候补匹配。发生冲突时按以下顺序处理：
 
-1. Follow the user's latest instruction for the current task.
-2. Follow a directly confirmed scoped preference.
-3. Follow confirmed personal samples.
-4. Use the universal writing rules for everything not settled above.
+1. 当前任务中用户最新的明确要求；
+2. 范围匹配且由用户直接确认的偏好；
+3. 已确认的个人样本；
+4. 通用写作规则。
 
-Human references are curator research inputs for maintaining the universal layer. They do not
-directly shape task output or act as a fallback style source.
-
-Never use a preference record as evidence for a factual claim.
+人类写作参考只供维护通用层时研究，不能直接影响任务成稿，也不能作为个人风格的候补来源。偏好记录不能作为事实证据。

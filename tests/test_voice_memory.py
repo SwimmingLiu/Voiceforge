@@ -146,6 +146,20 @@ class VoiceMemoryTest(unittest.TestCase):
             check=False,
         )
 
+    def test_init_creates_standalone_workspace_and_workspace_flag_works(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory) / "voiceforge-style"
+            initialized = self.run_cli("init", "--workspace", str(workspace))
+
+            self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
+            self.assertTrue((workspace / "05-areas/writing-style/Corpus Registry.md").is_file())
+            self.assertTrue((workspace / "05-areas/writing-style/Voice Profile.md").is_file())
+            self.assertTrue((workspace / "05-areas/writing-style/Human Technique Index.md").is_file())
+            self.assertTrue((workspace / "08-journal/writing-feedback").is_dir())
+
+            validated = self.run_cli("validate", "--workspace", str(workspace))
+            self.assertEqual(validated.returncode, 0, validated.stdout + validated.stderr)
+
     def rollout_evidence(self, stem: str = "rollout") -> dict[str, str]:
         final = self.vault / "06-output/published/holdout.md"
         final_text = final.read_text(encoding="utf-8")
@@ -865,7 +879,7 @@ class VoiceMemoryTest(unittest.TestCase):
             selected["techniques"], ["compare alternatives and explain tradeoffs"]
         )
         self.assertIn(
-            "Treat technique tags as curator retrieval cues, not rules or source claims.",
+            "方法标签是维护者检索线索，不是规则或来源声称。",
             payload["boundaries"],
         )
 
@@ -1100,7 +1114,7 @@ class VoiceMemoryTest(unittest.TestCase):
         human_id = payload["record"]["id"]
         confirmation = self.vault / payload["confirmation"]
         self.assertTrue(confirmation.is_file())
-        self.assertIn("provenance", confirmation.read_text(encoding="utf-8"))
+        self.assertIn("维护者已确认来源", confirmation.read_text(encoding="utf-8"))
 
         repeated = self.run_cli(
             *base_command,
@@ -1548,7 +1562,7 @@ class VoiceMemoryTest(unittest.TestCase):
         confirmation = confirmation_path.read_text(encoding="utf-8")
         self.assertIn("type: journal", confirmation)
         self.assertIn("user-confirmation", confirmation)
-        self.assertIn("both authorship and current representativeness", confirmation)
+        self.assertIn("用户已确认作者身份和样本当前代表性", confirmation)
 
         context = self.run_cli(
             "context",
@@ -1748,7 +1762,7 @@ class VoiceMemoryTest(unittest.TestCase):
             "public",
         )
         self.assertEqual(preview.returncode, 0, preview.stderr)
-        self.assertIn("## Change pairs", preview.stdout)
+        self.assertIn("## 修改对照", preview.stdout)
         self.assertFalse((self.vault / "08-journal/writing-feedback").exists())
 
         unconfirmed = self.run_cli(

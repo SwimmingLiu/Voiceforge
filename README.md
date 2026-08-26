@@ -1,190 +1,153 @@
 <div align="center">
   <h1>Voiceforge</h1>
-  <p><em>Reduce generic AI phrasing. Learn personal expression.</em></p>
+  <p><em>减少 AI 腔，保留真实、清楚的表达。</em></p>
 </div>
 
-Voiceforge reduces generic AI writing in Chinese and English through two cumulative layers. Its
-universal layer contains a complete fixed writing and editing baseline. Its optional personalized
-layer retrieves user-confirmed samples, preferences, and feedback from a Markdown knowledge base.
-
-It applies a personal voice only when authorship and current representativeness are confirmed.
-Account ownership, publication location, and silence are not treated as proof of a writing style.
-
-The repository contains reusable Skill instructions and deterministic Python tooling. It does not
-contain a user's articles, voice profile, corpus registry, feedback journal, or holdout samples.
+Voiceforge 是一个面向中文和英文写作的 Agent Skill。它包含一套始终生效的通用写作规则，也支持按需启用个人风格。普通写作不需要知识库、Obsidian 或任何个人资料；只有用户明确要求个性化时，才会读取用户主动提供并确认过的样本。
 
 <p align="center">
-  <img src="assets/voiceforge-intro-en.png" alt="Voiceforge reduces generic AI phrasing and learns personal expression" width="100%" />
+  <img src="okassets/voiceforge-intro-zh.png" alt="Voiceforge 减少 AI 腔，并按需学习个人表达" width="100%" />
 </p>
 
-## What It Is For
+## 适用场景
 
-Use Voiceforge when a writing task needs more than a generic style prompt:
+Voiceforge 可以处理这些任务：
 
-- apply a complete universal anti-AI writing baseline to every draft or edit;
-- make targeted additions, deletions, replacements, moves, structural changes, corrections, or
-  feedback-driven edits without changing unaffected content;
-- reduce generic AI phrasing while preserving facts and user constraints;
-- learn personalized expression from confirmed writing samples and explicit preferences;
-- maintain universal writing techniques from provenance-reviewed human references;
-- draft, revise, and compare text against approved writing;
-- preserve explicit feedback without turning unconfirmed signals into permanent rules.
+- 起草、改写、润色和校对面向读者的中文或英文内容；
+- 按要求新增、删除、替换、移动或重组内容，同时保留未受影响的部分；
+- 减少空泛铺垫、宣传式表达、重复总结和其他常见 AI 写作痕迹；
+- 在不改变事实、立场和约束的前提下改善句子、段落和结构；
+- 根据用户明确确认的样本和偏好调整表达；
+- 记录用户确认过的修改和拒绝项，供后续相似任务使用。
 
-## Why It Exists
+## 两层工作方式
 
-A generic style prompt can make prose sound polished without making it sound like a particular
-person. Voiceforge treats personal expression as evidence that must be confirmed, scoped, and
-updated through explicit feedback.
+| 层级 | 是否必需 | 作用 |
+| --- | --- | --- |
+| 通用写作层 | 始终启用 | 约束事实、语义、措辞、句子、结构、格式和删除操作，并运行确定性检查 |
+| 个人风格层 | 按需启用 | 使用用户明确提供并确认的样本、偏好和反馈调整语气、节奏和结构 |
 
-The system keeps different kinds of writing evidence in separate channels:
+没有个人样本时，Voiceforge 会直接使用通用写作层完成任务，不会要求用户先搭建知识库，也不会自动扫描开发者或用户本机的其他目录。
 
-- **Task evidence** supplies claims, examples, and conclusions.
-- **Confirmed personal samples** shape voice, rhythm, structure, and recurring preferences.
-- **Human references** support curator research for the universal layer; they do not directly shape
-  task output or contribute the user's identity, opinions, or facts.
-- **Feedback and negative samples** record what the user explicitly prefers or rejects.
+## 通用写作层检查什么
 
-The system does not infer personal authorship from an account name, publication location, or
-silence. Candidate samples stay out of drafting context until the user confirms authorship and
-current representativeness. Secret records and human references whose rights do not match the
-intended use are excluded before retrieval.
+通用写作层不只检查固定的 AI 表达，还会核对需要结合语境判断的事实和结构问题：
 
-## Quick Start
+| 范围 | 检查内容 |
+| --- | --- |
+| 事实和数字 | 保留来源中的数值与计算口径；自行换算不一致时指出差异，不静默替换 |
+| 第三方信息 | 公开点名第三方负面结果前取得确认；没有确认时使用中性、可核验的表述 |
+| 读者语境 | 专有名词首次出现时说明它是什么、与当前内容有什么关系，并就近放置已有可靠链接 |
+| 句子关系 | 检查主语、动作和对象，避免动作主体同时进入自己的连接、整合或合并对象 |
+| 口语节奏 | 保留承担语法和节奏作用的必要虚词，把补足虚词与删除多余语气词分开处理 |
+| 段落分工 | 避免相邻段落重复同一数字、事实或结论，让事实段和判断段分别承担作用 |
+| 标题证据 | 区分整篇标题和文内小标题，并逐项核对标题中的第一人称、动作、时间、数量、结果和判断 |
+| 动词选择 | 检查含义模糊且可以自然替换的单字动作词，同时避免为了换词制造生硬表达 |
 
-Link a local checkout into the shared Agent Skills directory:
+完整规则见 [通用写作规则](references/universal-writing-rules.md)，本次与 oil-tone 的语义对照见 [通用改写规则补充记录](references/oil-tone-rule-gap.md)。
+
+## 快速开始
+
+把本仓库链接到 Agent Skills 目录：
 
 ```bash
 mkdir -p ~/.agents/skills
 ln -sfn /path/to/Voiceforge ~/.agents/skills/voiceforge
 ```
 
-Validate the knowledge base before using it:
+普通写作到这里就可以开始使用，无需额外配置。
+
+完成文件后，可运行通用表达检查：
 
 ```bash
-python3 scripts/voice_memory.py validate --vault /path/to/knowledge-base
+python3 scripts/tone_lint.py /path/to/draft.md
 ```
 
-Retrieve scoped style evidence for a writing task:
+检查聊天中的短文本时，可从标准输入传入：
+
+```bash
+printf '%s' '待检查的内容' | python3 scripts/tone_lint.py -
+```
+
+## 可选的个人风格工作区
+
+个人风格数据保存在一个独立工作区中。这个工作区由 Voiceforge 自行初始化，不属于用户的知识库，也不要求采用 Obsidian 目录结构。
+
+```bash
+python3 scripts/voice_memory.py init --workspace ~/.voiceforge
+```
+
+初始化命令只会在指定目录中创建 Voiceforge 所需的索引、配置和记录目录。它不会读取其他个人文件。
+
+校验工作区：
+
+```bash
+python3 scripts/voice_memory.py validate --workspace ~/.voiceforge
+```
+
+按任务范围检索已确认的个人风格证据：
 
 ```bash
 python3 scripts/voice_memory.py context \
-  --vault /path/to/knowledge-base \
+  --workspace ~/.voiceforge \
   --language zh --genre technical-article --audience public \
-  --intended-use unknown --query "topic and writing purpose"
+  --intended-use unknown --query "主题和写作目的"
 ```
 
-When the task facts already exist in a source or journal record, prepare them separately from
-the style context:
+旧版的 `--vault` 参数仍可使用，但只作为 `--workspace` 的兼容别名。新项目应统一使用 `--workspace`。
 
-```bash
-python3 scripts/voice_memory.py prepare \
-  --vault /path/to/knowledge-base \
-  --fact-packet 02-sources/fact-packet.md \
-  --language zh --genre technical-article --audience public \
-  --intended-use unknown --query "topic and writing purpose"
-```
+## 个性化边界
 
-## How It Works
+Voiceforge 把不同证据分开处理：
 
-1. Read and apply the complete universal rules in `references/universal-writing-rules.md`.
-2. Look for a valid Markdown vault and classify the request by language, genre, audience, channel,
-   purpose, and intended use. A missing vault is valid.
-3. When eligible personal evidence exists, retrieve a small, scope-aware context and use it to shape
-   voice, rhythm, and structure. Candidate personal samples never act as fallback evidence.
-4. When personal evidence is absent, draft directly from task facts and the universal layer.
-5. In both paths, review the result against the complete universal rules and run the bundled
-   `scripts/tone_lint.py`, using a file path or stdin for chat-only output. Personalization never
-   bypasses this final pass.
-6. Record feedback only after an explicit user revision, acceptance, rejection, or preference.
+| 证据 | 可以影响 | 不可以影响 |
+| --- | --- | --- |
+| 当前任务资料 | 事实、例子、结论 | 个人风格，除非同一内容也被确认为风格样本 |
+| 已确认个人样本 | 语气、节奏、结构、稳定偏好 | 当前任务的新事实 |
+| 人类写作参考 | 通用规则的维护研究 | 当前成稿、用户身份、观点或经历 |
+| 反馈和负面样本 | 用户明确希望保留或避免的表达 | 事实和未经确认的长期规则 |
 
-Voiceforge and its universal layer remain available in every activation mode. `shadow` means only
-that the personal profile is provisional and must not be described as mature. A healthy registry
-means the data follows the schema; it does not by itself prove that personalization is mature.
+候选样本不会自动参与生成。文件归属、账号名称、发布位置和用户未回复都不能证明某份文本代表用户风格。涉及个人风格的持久化操作必须由用户明确确认。
 
-## What It Contains
+## 工作流程
 
-| Layer | Role |
+1. 从当前请求和用户提供的资料中整理事实、约束和不确定项。
+2. 读取并执行 [通用写作规则](references/universal-writing-rules.md)。
+3. 只有在用户明确要求个性化且提供了风格工作区时，才检索已确认的个人证据。
+4. 从任务事实规划内容；个人样本只影响表达，不补充事实。
+5. 完成草稿后再次执行通用规则，并检查事实、隐私、引用、受众和格式。
+6. 运行 `scripts/tone_lint.py`，修复所有失败项，并结合语境判断警告项。
+
+## 仓库结构
+
+| 路径 | 用途 |
 | --- | --- |
-| Universal writing layer | Contains the complete task, fact, wording, sentence, structure, format, deletion, and anti-AI expression rules |
-| Human writing library | Stores provenance, rights, scope, and short technique evidence |
-| Human Technique Index | Provides curator-maintained retrieval cues without becoming a hidden prompt |
-| Personal voice profile | Stores only user-confirmed samples and durable preferences |
-| Scoped retrieval | Selects evidence for the current language, genre, audience, and intended use |
-| Feedback memory | Keeps append-only before/after records and explicit negative evidence |
-| Holdout evaluation | Measures factual fidelity, constraint fidelity, editing burden, and generalization |
+| `SKILL.md` | Skill 的运行规则、证据边界和执行流程 |
+| `agents/openai.yaml` | 展示信息和默认提示词 |
+| `references/architecture.md` | 架构、数据流和隔离边界 |
+| `references/corpus-schema.md` | 风格工作区中的语料索引格式 |
+| `references/evaluation.md` | 个性化能力的评估门槛 |
+| `references/oil-tone-rule-gap.md` | 与 oil-tone 对照后补入的通用规则及来源 |
+| `references/preference-memory.md` | 长期写作偏好的记录规则 |
+| `references/universal-writing-rules.md` | 完整的通用写作规则 |
+| `scripts/voice_memory.py` | 风格工作区、检索、反馈和评估命令行工具 |
+| `scripts/tone_lint.py` | 通用表达的确定性检查工具 |
+| `tests/` | 回归测试 |
 
-## Per-user Data
-
-Each user supplies a private Markdown vault. The usual records are:
-
-```text
-05-areas/writing-style/Corpus Registry.md
-05-areas/writing-style/Voice Profile.md
-05-areas/writing-style/Human Technique Index.md
-08-journal/writing-feedback/
-08-journal/writing-sample-confirmations/
-```
-
-The registry stores paths and metadata, not a copied corpus. A user can run Voiceforge without
-confirmed personal samples; the Skill then uses the complete universal layer and treats the
-personal profile as provisional.
-
-## Repository Layout
-
-| Path | Purpose |
-| --- | --- |
-| `SKILL.md` | Runtime instructions, evidence boundaries, and routing policy |
-| `agents/openai.yaml` | Display metadata and the default prompt |
-| `references/architecture.md` | Data flow and separation between evidence channels |
-| `references/corpus-schema.md` | Registry and Human Technique Index schema |
-| `references/evaluation.md` | Test sets, rollout gates, and promotion criteria |
-| `references/preference-memory.md` | Confirmed preference storage and supersession rules |
-| `references/universal-writing-rules.md` | Complete universal anti-AI writing and editing baseline |
-| `scripts/voice_memory.py` | Deterministic registry, retrieval, feedback, and evaluation CLI |
-| `scripts/tone_lint.py` | Deterministic final lint for known universal writing failures and warnings |
-| `tests/test_voice_memory.py` | Regression tests for the CLI and memory rules |
-| `tests/test_tone_lint.py` | Regression tests for the bundled universal lint |
-
-## Common Commands
-
-Inspect a draft against the confirmed profile:
-
-```bash
-python3 scripts/voice_memory.py analyze \
-  --vault /path/to/knowledge-base --file /path/to/draft.md \
-  --language zh --genre technical-article --audience public
-```
-
-Preview a feedback record before writing it:
-
-```bash
-python3 scripts/voice_memory.py feedback \
-  --vault /path/to/knowledge-base \
-  --before /path/to/draft.md --after /path/to/user-final.md \
-  --verdict revised --task-id example-task \
-  --language zh --genre technical-article --audience public
-```
-
-Run the regression suite from the repository root:
+## 运行测试
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-## Relationship With oil-tone
+## 与 oil-tone 的关系
 
-Voiceforge now contains the complete capabilities previously supplied by `oil-tone`: the universal
-writing rules and deterministic lint are bundled as its required final layer. `oil-tone` remains a
-legacy compatibility entry that delegates writing work to Voiceforge. It is not a separate stage or
-an external dependency of the Voiceforge pipeline.
+Voiceforge 已内置原先由 `oil-tone` 提供的通用写作规则和确定性检查。`oil-tone` 仅用于兼容旧调用，不是 Voiceforge 的运行依赖。
 
-## Boundaries
+## 限制
 
-Voiceforge does not fine-tune a model, place an entire writing library in a static prompt, or
-reproduce a living writer's distinctive expression. Style examples are not factual sources, and
-semantic similarity is not proof of stylistic similarity. Personal data stays in the user's
-private vault; only reusable implementation belongs in this repository.
+Voiceforge 不会微调模型，不会把整套文章库放进提示词，也不会复刻在世作者的独特文风。风格样本不能作为事实来源，语义相似也不能证明风格相似。个人数据只保存在用户明确指定的独立工作区中。
 
-## License
+## 许可证
 
-MIT. See [LICENSE](LICENSE).
+本项目采用 MIT 许可证，详见 [LICENSE](LICENSE)。

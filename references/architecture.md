@@ -1,136 +1,77 @@
-# Architecture
+# 架构
 
-## Contents
+## 设计目标
 
-1. Design goal
-2. Six layers
-3. Generation flow
-4. Learning flow
-5. Integration boundary
-6. Non-goals
+Voiceforge 通过通用写作层和可选个人风格层减少 AI 腔。通用层始终生效；个人层只使用用户主动提供并确认的证据。外部文章、模型输出、账号归属和偶然修改都不能静默改变用户风格。
 
-## Design goal
+普通写作不依赖知识库。系统不得自动定位或读取开发者、安装者或用户的个人知识库。需要持久化个人风格时，使用由 `voice_memory.py init` 创建的独立工作区。
 
-Reduce generic AI writing through two cumulative layers: a complete universal writing baseline and
-optional task-aware personalization. The universal layer always applies. The personalized layer
-uses confirmed evidence without allowing external prose, model output, or accidental edits to
-silently redefine the user's voice.
+## 六个组成部分
 
-## Six layers
-
-| Layer | Source of truth | Update rule |
+| 部分 | 事实来源 | 更新规则 |
 | --- | --- | --- |
-| Universal writing layer | `references/universal-writing-rules.md` and `scripts/tone_lint.py` | Change deliberately and validate with the lint self-test |
-| Human writing library | Immutable source records and registry metadata | Add with author and provenance |
-| Human technique index | Curator-maintained cards linked to human sources | Add only as retrieval cues; never as source facts or universal rules |
-| Personal voice memory | User-confirmed final writing and explicit preferences | Add only after confirmation |
-| Task retrieval | Reproducible selection from the registry | Rebuild for every task |
-| Feedback and evaluation | Append-only edit records and holdout tests | Promote after evidence |
+| 通用写作层 | `references/universal-writing-rules.md` 和 `scripts/tone_lint.py` | 人工修改，并通过检查工具和回归测试验证 |
+| 人类写作参考 | 工作区中的来源记录和索引元数据 | 记录作者、来源、许可和用途后再加入 |
+| 人类写作方法索引 | 与来源关联的维护者卡片 | 只作研究检索线索，不作为事实或通用硬规则 |
+| 个人风格记录 | 用户确认的最终文本和明确偏好 | 只有获得确认后才写入 |
+| 任务检索 | 从索引中按范围选择的结果 | 每个任务重新生成 |
+| 反馈与评估 | 追加式修改记录和留出测试 | 取得充分证据后再升级规则 |
 
-The universal writing layer contains the complete fixed task, fact, narrative, wording, sentence,
-structure, heading, formatting, deletion, and anti-AI expression baseline. It applies before and
-after optional personalization. The deterministic linter covers known patterns; manual review
-applies the full rule set.
+通用层覆盖事实、叙述身份、措辞、句子、结构、标题、格式、删除操作和常见 AI 表达。它在可选个性化前后各执行一次。确定性检查只覆盖已知模式，完整判断仍需人工复核。
 
-The human writing library supplies genre techniques such as how an explanation introduces a
-term, moves from mechanism to example, or ends a section. It never supplies personal identity
-or task facts. A provenance gate keeps recent, anonymous, weakly attributed, or potentially
-machine-generated text out of the confirmed human-reference set until its origin and allowed
-use are documented.
+个人风格记录可以包含明确偏好、已确认成稿和已确认的前后修改。量化特征用于诊断，检索到的短文本用于观察未被写成规则的表达习惯。个人样本只影响表达，不得提供任务事实。
 
-Personal memory contains direct statements of preference, confirmed final texts, and confirmed
-before/after edits. Quantitative features summarize the corpus, while retrieved excerpts let the
-model infer patterns that were never encoded as rules. Store confirmed preferences as structured,
-append-only records so they can be retrieved, scoped, superseded, and audited.
+## 普通写作流程
 
-## Generation flow
+1. 读取完整通用写作规则。
+2. 从当前请求和用户提供的资料中整理事实、约束和不确定项。
+3. 判断语言、体裁、受众、渠道、目的和用途。
+4. 根据事实关系规划并起草内容。
+5. 再次执行完整通用规则，检查事实、隐私、引用和用户约束。
+6. 运行 `scripts/tone_lint.py`。
 
-1. Load the complete universal writing rules.
-2. Extract task facts and uncertain claims. If the facts are preserved in the vault, search
-   maintained concepts/projects and relevant source records first, then use `prepare` to emit
-   a bounded `fact_evidence` section before retrieving style evidence.
-3. Classify language, genre, audience, channel, and purpose.
-4. Retrieve confirmed personal samples for optional personalization. Keep any returned human
-   references in the curator-research channel; they do not shape the task draft.
-5. Plan content from task facts.
-6. When eligible personal evidence exists, draft with it. Otherwise draft directly with the
-   universal layer without adding another style source.
-7. When personalization was used, compare the draft with the profile and negative evidence.
-8. Apply the complete universal rules again, verify facts, privacy, citations, and user constraints,
-   then run the bundled deterministic linter.
+这一流程不读取个人知识库，也不要求存在风格工作区。
 
-Personal style retrieval follows metadata before topic similarity. A technical article about databases
-usually benefits more from another confirmed technical explanation than from a social post about
-the same database. Rank scope mismatches instead of discarding them: return exact evidence first,
-then mark partial or fallback evidence explicitly when the exact corpus is sparse.
-Candidate personal material is never a sparse-corpus fallback. Human-reference retrieval remains
-available for curator research and compares the declared intended use with each source's structured
-`allowed_uses`. Results carry author, license, rights, and usage notes; excluded sources remain
-visible only as diagnostic IDs. Third-party excerpts are analysis-only and cannot influence task
-drafting or create a third runtime style layer.
+## 个性化流程
 
-Use `audit-corpus` before expanding the library. It reports exact/partial scope coverage, rights
-exclusions, missing technique cards, low-confidence confirmed origins, and registered candidates.
-It is a gap report, not a promotion command; adding a source still requires provenance and curator
-review.
+只有用户明确要求个性化，并主动提供已确认样本或独立风格工作区时，才在普通流程的第 4 步前增加检索：
 
-Technique cards are a derived index, not an additional source. Each card points to one confirmed
-human reference, states that its labels are curator inference, and can group related chapters with
-`collection_id`. The context interface returns the card labels together with the excerpt so the
-caller can inspect the evidence. When the first match is exact, fallback sources do not pad the
-result; when several candidates are similarly matched, the selector prefers distinct collections
-and penalizes near-duplicate technique sets. These results support curator analysis only; the
-generation flow does not apply them directly to task output.
+1. 用 `validate --workspace` 校验工作区。
+2. 根据任务范围检索已确认个人样本、偏好和负面证据。
+3. 精确匹配优先于部分匹配和候补匹配；候选个人样本永不参与检索。
+4. 人类写作参考只供维护者研究，不得直接影响任务成稿。
+5. 用个人证据调整表达后，继续完成通用复核和检查。
 
-## Learning flow
+第三方参考必须按声明用途过滤，并随结果返回作者、许可、权利和使用说明。方法卡片只是派生索引，必须关联到已确认来源，不能成为隐藏提示词。
 
-1. Observe an explicit acceptance, rejection, correction, or final version.
-2. Preserve the event as an append-only feedback record only after an explicit
-   `reviewer_confirmed` signal.
-3. Use the event immediately as local task evidence on similar future work.
-4. Record both textual edit pairs and quantitative style deltas, then aggregate repeated exact,
-   explicit, and directionally consistent signals into candidate preferences.
-5. Return evidence paths with each promotion candidate.
-6. Require explicit confirmation before appending the preference to the maintained profile.
-7. Store explicitly rejected drafts as separate negative evidence when the user wants the pattern
-   avoided; negative evidence never enters positive personal statistics.
-8. Retrieve that preference or contrastive evidence on the next compatible task and preserve
-   superseded records.
-9. Run a user-confirmed holdout evaluation before changing the core Skill. Recompute edit ratios
-   from the referenced documents and preserve factual, constraint, and substantive-edit counts.
+## 学习流程
 
-This is controlled adaptation. It avoids a feedback loop in which AI-generated phrases become
-training data merely because the user did not edit them.
+1. 用户明确接受、拒绝、修改或提交最终版本。
+2. 获得确认后，把事件保存为追加式反馈记录。
+3. 保存文字修改对和量化变化，汇总重复信号。
+4. 重复信号只能形成候选偏好；用户再次确认后才能写入长期配置。
+5. 用户明确拒绝的表达单独保存为负面证据，不进入正向个人统计。
+6. 修改核心 Skill 前，使用留出样本评估事实准确性、约束符合度和修改负担。
 
-## Integration boundary
+这套流程避免把用户没有修改的 AI 文本误当成个人风格。
 
-`Voiceforge` is the external writing seam. It owns both the complete universal writing layer and the
-optional personalized layer. `oil-tone` is a legacy compatibility entry and may retain fallback
-copies for older callers, but Voiceforge does not depend on that Skill at runtime. The canonical
-universal rules and linter for this project live inside Voiceforge.
+## 集成边界
 
-Integration has two modes:
+Voiceforge 是统一的写作入口，拥有完整通用层和可选个人层。`oil-tone` 只作为旧版兼容入口存在，不是运行依赖。
 
-| Mode | Allowed behavior |
+个性化有两种状态：
+
+| 状态 | 可用行为 |
 | --- | --- |
-| `shadow` | Universal layer active; eligible confirmed personal evidence may be used, but the profile remains provisional |
-| `active` | Universal layer active; the personal profile has passed the maturity gates |
+| `shadow` | 通用层正常运行；可以谨慎使用合格个人证据，但不得声称配置成熟 |
+| `active` | 通用层正常运行；个人配置已通过全部成熟度门槛 |
 
-`validate` reports the mode. Activation requires all five independent gates: a confirmed
-personal profile, a minimally diverse human-reference library, a confirmed holdout, at least one
-user-confirmed feedback event, and a user-confirmed passing rollout evaluation. The rollout record
-must show zero candidate factual and constraint errors, lower document edit distance, and fewer
-substantive edits than the baseline. Missing evidence, changed files, or mismatched metrics keep
-the system in shadow mode or make validation fail.
+状态只控制对个性化成熟度的表述，不控制 Voiceforge 是否可用。无论状态如何，通用写作层都必须运行。
 
-Readiness controls claims about personalization maturity, not Voiceforge routing or availability.
-The universal layer runs in both modes. This keeps activation reproducible and prevents an agent
-from promoting the personal profile from memory or subjective confidence.
+## 不处理的目标
 
-## Non-goals
-
-- Fine-tuning a model or embedding a whole library in the prompt.
-- Reproducing a living writer's distinctive expression.
-- Treating semantic similarity as proof of stylistic similarity.
-- Using style examples as factual sources.
-- Claiming a stable personal voice from a few or unverified documents.
+- 微调模型或把整套文章库嵌入提示词；
+- 复刻在世作者的独特表达；
+- 把语义相似当作风格相似的证据；
+- 把风格样本作为事实来源；
+- 根据少量或未经确认的文档声称已经形成稳定个人风格。

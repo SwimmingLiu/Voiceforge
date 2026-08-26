@@ -1,122 +1,82 @@
-# Corpus registry schema
+# 风格工作区语料索引格式
 
-## Contents
+## 位置和格式
 
-1. Location and format
-2. Required fields
-3. Roles and status
-4. Human Technique Index
-5. Example
-6. Classification rules
+使用以下命令创建独立风格工作区：
 
-## Location and format
+```bash
+python3 scripts/voice_memory.py init --workspace <目录>
+```
 
-Store the default registry at:
+默认索引位于：
 
 `05-areas/writing-style/Corpus Registry.md`
 
-Keep one JSON object per line inside a fenced `jsonl` block. Paths are relative to the vault.
-The Markdown file is canonical; generated statistics and retrieval output are disposable.
+这个路径只是 Voiceforge 工作区内部布局，不要求用户搭建知识库或采用 Obsidian。索引在 `jsonl` 代码块中每行保存一个 JSON 对象。文件路径相对于工作区根目录；Markdown 文件是唯一正式记录，生成的统计和检索结果可以随时重建。
 
-## Required fields
+## 必填字段
 
-| Field | Allowed values or meaning |
+| 字段 | 允许值或含义 |
 | --- | --- |
-| `id` | Stable unique identifier |
-| `path` | Relative Markdown path inside the vault |
-| `role` | `personal`, `human-reference`, `negative`, or `holdout` |
-| `status` | `candidate`, `confirmed`, or `rejected` |
-| `authorship` | `user`, `third-party`, `mixed`, or `unknown` |
-| `approval` | `user-confirmed`, `curator-confirmed`, or `unreviewed` |
-| `language` | Usually `zh`, `en`, or `mixed` |
-| `genre` | Stable local label such as `technical-article` |
-| `audience` | Stable local label such as `public` or `internal` |
-| `weight` | Number from `0` to `2`; default `1` |
-| `origin_claim` | `user-authored`, `pre-generative-ai`, `attributed-human`, `human-edited`, `mixed`, or `unknown` |
-| `origin_confidence` | `high`, `medium`, `low`, or `unknown` |
+| `id` | 稳定且唯一的标识符 |
+| `path` | 工作区内的相对 Markdown 路径 |
+| `role` | `personal`、`human-reference`、`negative` 或 `holdout` |
+| `status` | `candidate`、`confirmed` 或 `rejected` |
+| `authorship` | `user`、`third-party`、`mixed` 或 `unknown` |
+| `approval` | `user-confirmed`、`curator-confirmed` 或 `unreviewed` |
+| `language` | 通常为 `zh`、`en` 或 `mixed` |
+| `genre` | 稳定体裁标签，例如 `technical-article` |
+| `audience` | 稳定受众标签，例如 `public` 或 `internal` |
+| `weight` | `0` 到 `2` 之间的数字，默认值为 `1` |
+| `origin_claim` | `user-authored`、`pre-generative-ai`、`attributed-human`、`human-edited`、`mixed` 或 `unknown` |
+| `origin_confidence` | `high`、`medium`、`low` 或 `unknown` |
 
-Optional fields include `channel`, `purpose`, `author`, `rights`, `license_id`, `allowed_uses`,
-`origin_basis`, `confirmation_evidence`, `notes`, and `created`. `origin_basis`, `author`,
-`rights`, `license_id`, and a non-empty `allowed_uses` list become required when a human reference
-is confirmed. Allowed use values are `private`, `noncommercial`, and `commercial`. Confirmed
-personal and holdout entries require a `user-authored` claim with at least medium confidence and
-`confirmation_evidence` pointing to an existing source or journal record inside the vault.
+可选字段包括 `channel`、`purpose`、`author`、`rights`、`license_id`、`allowed_uses`、`origin_basis`、`confirmation_evidence`、`notes` 和 `created`。
 
-Documents whose frontmatter declares `sensitivity: secret` must not be registered in any
-writing-memory role, even when a curator or user otherwise confirms the entry; the validator and
-promotion commands reject them before retrieval or journal writing.
+已确认的人类参考必须填写作者、来源依据、权利、许可和非空用途列表。用途值包括 `private`、`noncommercial` 和 `commercial`。已确认个人样本和留出样本必须声明 `user-authored`，来源置信度至少为 `medium`，并由 `confirmation_evidence` 指向工作区内存在的确认记录。
 
-For a human reference, use a stable license identifier such as `CC-BY-SA-4.0` in `license_id`,
-list the permitted task uses in `allowed_uses`, and put attribution, noncommercial, share-alike,
-passage-reuse, or other material limits in `rights` and `notes`. The `context` command returns
-these fields with the excerpt. It excludes a source when the declared intended use is not allowed;
-`unknown` is compatible only with a source allowed for private, noncommercial, and commercial use.
+任何 frontmatter 中声明 `sensitivity: secret` 的文档都不得登记为写作记忆。校验和升级命令必须在检索或写入前拒绝这类文档。
 
-Keep durable writing preferences out of this registry. Store them in `Voice Profile.md` by
-following [preference-memory.md](preference-memory.md); registry entries describe documents,
-while preference records describe confirmed behavior.
+长期偏好不放在语料索引中，而是按 [preference-memory.md](preference-memory.md) 写入 `Voice Profile.md`。语料索引描述文档，偏好记录描述用户确认的写作行为。
 
-## Human Technique Index
+## 人类写作方法索引
 
-Store curator-inferred writing methods separately at
-`05-areas/writing-style/Human Technique Index.md`. The registry remains the source record's
-identity, provenance, rights, and scope; the technique index is a derived retrieval aid and must
-never be copied into the source text or treated as an author's own rule.
+方法卡片保存在：
 
-Each active card is one JSON object inside a `jsonl` block:
+`05-areas/writing-style/Human Technique Index.md`
+
+每张启用卡片在 `jsonl` 代码块中占一行：
 
 ```jsonl
-{"kind":"human-technique","id":"technique-example","corpus_id":"human-example","status":"confirmed","approval":"curator-confirmed","collection_id":"example-book","techniques":["Explain why the mechanism exists before describing it","Place exceptions next to the relevant rule"],"technique_basis":"Codex curator inference from the preserved source; retrieval cue only.","created":"2026-08-15"}
+{"kind":"human-technique","id":"technique-example","corpus_id":"human-example","status":"confirmed","approval":"curator-confirmed","collection_id":"example-book","techniques":["先解释机制存在的原因，再说明实现","把例外放在对应规则附近"],"technique_basis":"维护者根据保存的来源归纳，仅作检索线索。","created":"2026-08-15"}
 ```
 
-`corpus_id` must point to a confirmed `human-reference`. `techniques` contains at most 12 short
-labels, each no longer than 120 characters. `technique_basis` records that the labels are a
-curator inference. `collection_id` groups chapters or related pages so retrieval can diversify
-the returned evidence. The `context` command returns these fields with
-`technique_status: curator-inference`; it still returns the source excerpt and rights metadata
-as the authoritative evidence.
+`corpus_id` 必须指向已确认的 `human-reference`。`techniques` 最多包含 12 个短标签，每个标签不超过 120 个字符。`technique_basis` 必须说明这些标签是维护者归纳。`collection_id` 用于把同一书籍、栏目或系列中的材料归组，以增加检索结果的多样性。
 
-## Roles and status
+## 角色和状态
 
-- `personal`: May shape the user's voice. A confirmed entry must use `authorship: user`,
-  `approval: user-confirmed`, and `status: confirmed`.
-- `human-reference`: May support curator research for universal writing techniques but never
-  directly shape task output, personal identity, or task facts.
-- A confirmed `human-reference` must have `third-party` authorship, curator approval, an allowed
-  reference use, an external source URL, and a medium/high-confidence origin claim of
-  `pre-generative-ai`, `attributed-human`, or `human-edited`.
-- `negative`: Rejected or known-unwanted writing used as contrastive evidence.
-- `holdout`: Confirmed personal writing reserved for evaluation and never returned by `context`.
-- `candidate`: Discoverable but excluded from normal retrieval.
-- `rejected`: Preserved for traceability and excluded from positive retrieval.
+- `personal`：可以影响用户表达。已确认条目必须同时满足 `authorship: user`、`approval: user-confirmed` 和 `status: confirmed`。
+- `human-reference`：只供维护通用写作规则时研究，不得直接影响当前成稿、个人身份或任务事实。
+- `negative`：用户明确拒绝或已知不希望出现的表达，只作对比证据。
+- `holdout`：用于评估的已确认个人文本，`context` 永不返回。
+- `candidate`：可以被发现，但不能进入正常检索。
+- `rejected`：保留用于追溯，不进入正向检索。
 
-## Example
+## 示例
 
 ```jsonl
-{"id":"personal-agent-article-01","path":"06-output/published/Agent Memory.md","role":"personal","status":"confirmed","authorship":"user","approval":"user-confirmed","origin_claim":"user-authored","origin_confidence":"high","origin_basis":"user confirmed authorship and current representativeness","confirmation_evidence":"02-sources/2026-08-15 Personal sample confirmation.md","language":"zh","genre":"technical-article","audience":"public","weight":1.2,"rights":"owned"}
-{"id":"human-compaction-01","path":"02-sources/How Compaction Works.md","role":"human-reference","status":"confirmed","authorship":"third-party","approval":"curator-confirmed","origin_claim":"attributed-human","origin_confidence":"medium","origin_basis":"named publisher, dated original page, and curator review","language":"en","genre":"technical-article","audience":"technical-practitioner","weight":1.0,"author":"Example Publisher","rights":"public reference; no passage reuse","license_id":"public-reference-no-reuse","allowed_uses":["private"]}
-{"id":"personal-holdout-01","path":"06-output/published/RAG Evaluation.md","role":"holdout","status":"confirmed","authorship":"user","approval":"user-confirmed","origin_claim":"user-authored","origin_confidence":"high","origin_basis":"user confirmed authorship and reserved the sample for evaluation","confirmation_evidence":"02-sources/2026-08-15 Holdout confirmation.md","language":"zh","genre":"technical-article","audience":"public","weight":1.0,"rights":"owned"}
+{"id":"personal-article-01","path":"06-output/published/Agent Memory.md","role":"personal","status":"confirmed","authorship":"user","approval":"user-confirmed","origin_claim":"user-authored","origin_confidence":"high","confirmation_evidence":"02-sources/personal-confirmation.md","language":"zh","genre":"technical-article","audience":"public","weight":1.2,"rights":"owned"}
+{"id":"human-reference-01","path":"02-sources/How Compaction Works.md","role":"human-reference","status":"confirmed","authorship":"third-party","approval":"curator-confirmed","origin_claim":"attributed-human","origin_confidence":"medium","origin_basis":"具名发布者、原始页面和维护者审核","language":"en","genre":"technical-article","audience":"technical-practitioner","weight":1.0,"author":"Example Publisher","rights":"仅供公开参考，不得复用段落","license_id":"public-reference-no-reuse","allowed_uses":["private"]}
 ```
 
-## Classification rules
+## 分类规则
 
-1. Register source provenance before style interpretation.
-2. Do not infer authorship from a filename, account owner, or publication location alone.
-3. Mark edited model output as `mixed` until the user confirms it represents their final voice.
-4. Keep third-party excerpts short in generated context and do not copy distinctive phrases.
-5. Use separate entries when one document contains materially different genres or authors.
-6. Reserve about 10–20% of mature personal samples as `holdout` once enough material exists.
-7. Treat `catalog` origin fields as suggestions. Metadata can justify candidacy, not human
-   authorship or current personal-voice representativeness by itself.
-8. Do not expose candidate entries through drafting retrieval. Inspect them only in the registry
-   while deciding whether the user or curator can confirm them.
-9. Do not infer personal voice from account ownership or frontmatter author alone. Treat a document
-   dominated by quotations, translations, interview-question compilations, or copied source text
-   as mixed until the user's own contribution can be separated and confirmed.
-10. Use `promote-sample` for personal and holdout confirmation. Preview first; persist only with
-    both explicit confirmation flags and a source or journal record that preserves the evidence.
-11. Keep technique cards in the separate index. Do not add them to the corpus registry or promote
-    them into universal hard rules without cross-genre regression evidence.
-12. Use `promote-negative` for a rejected draft or expression only after the user explicitly
-    identifies it as something to avoid. Negative entries use `status: rejected`, remain outside
-    the personal profile, and are returned only in the separate negative context channel.
+1. 先记录来源，再判断风格作用。
+2. 不得根据文件名、账号归属、作者 frontmatter 或发布位置推断个人作者身份。
+3. 用户确认前，经过模型生成或编辑的文本保持 `mixed` 或 `candidate`。
+4. 第三方摘录必须简短，不得复制具有辨识度的措辞。
+5. 一份文档包含明显不同的体裁或作者时，应拆成多个条目。
+6. 样本足够后，将约 10%–20% 的成熟个人样本保留为 `holdout`。
+7. `catalog` 的来源判断只用于提出候选，不代表人工确认。
+8. 只使用升级命令确认样本，并先预览、后写入。
+9. 方法卡片与语料索引分开保存，不能在没有跨体裁回归证据时升级为通用硬规则。

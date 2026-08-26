@@ -1,400 +1,114 @@
 ---
 name: voiceforge
-description: Reduce generic AI writing in Chinese and English through a complete universal writing baseline plus optional user-confirmed personalization. Use for drafting, rewriting, polishing, evaluating, or target-editing reader-facing content, including additions, deletions, replacements, restructuring, shortening, expansion, correction, deduplication, and feedback-driven changes. Do not use for code logic, configuration values, filenames, or machine data that contain no reader-facing prose.
+description: 面向中文和英文读者内容的起草、改写、润色和定向编辑工具。适用于新增、删除、替换、重组、压缩、扩写、纠错、去重和按反馈修改内容。通用写作层始终生效；个人风格层只在用户明确要求并提供已确认样本时启用。不要用于只改代码逻辑、配置值、文件名或纯机器数据的任务。
 ---
 
 # Voiceforge
 
-`Voiceforge` is the canonical name of this Skill.
+`Voiceforge` 是本 Skill 的唯一正式名称。
 
-Voiceforge has two cumulative layers:
+Voiceforge 包含两层能力：
 
-1. **Universal layer:** Apply the complete anti-AI writing and editing baseline in
-   [references/universal-writing-rules.md](references/universal-writing-rules.md), then run the
-   bundled `scripts/tone_lint.py`. This layer always applies.
-2. **Personalized layer:** When eligible user-confirmed evidence exists, use it to shape voice,
-   rhythm, structure, and recurring preferences before applying the universal layer.
+1. **通用写作层：**读取并执行 [references/universal-writing-rules.md](references/universal-writing-rules.md)，完成后运行 `scripts/tone_lint.py`。这一层始终生效。
+2. **个人风格层：**只有用户明确要求个性化，并提供独立风格工作区或当前任务中的已确认样本时才启用。个人样本只影响语气、节奏、结构和稳定偏好。
 
-The execution order is `task evidence -> optional personalization -> universal review and lint`.
-If personalized evidence is missing, skip only personalization; never skip the universal layer.
+执行顺序为：`任务证据 → 可选个性化 → 通用复核 → 确定性检查`。没有个人证据时，只跳过个性化，不得跳过通用写作层。
 
-Use the knowledge base as style memory. Keep facts, general writing references, personal voice,
-and feedback as separate evidence channels. Do not turn a growing corpus into a larger static
-prompt.
+## 不依赖本地知识库
 
-## Apply the universal layer
+普通写作不得查找、要求或假设存在任何个人知识库。不要自动扫描当前目录之外的 vault、Obsidian 仓库、文章库或用户资料目录，也不要调用外部的知识库定位器。
 
-Read [references/universal-writing-rules.md](references/universal-writing-rules.md) for every
-drafting or editing task. It is Voiceforge's canonical general-writing policy and includes the
-full task scope, priority order, factual and narrative boundaries, wording, sentence, structure,
-heading, formatting, fixed AI-expression, content-type, English-language, Markdown deletion, and
-completion-review capabilities previously supplied by `oil-tone`.
+个人风格数据只能来自以下两种渠道：
 
-Apply these rules while planning and drafting, then apply them again as a final review after any
-personalized expression has been introduced. The personalized layer may refine choices within the
-universal rules but may not override factual accuracy, the user's explicit request, deletion
-semantics, privacy, attribution, or valid formatting constraints.
+- 用户在当前任务中主动提供并明确确认代表其当前表达的文本；
+- 用户明确指定的 Voiceforge 独立风格工作区。
 
-## Locate personalized evidence
-
-1. Look for the Markdown vault from the current directory. A missing vault is valid and means this
-   task uses only the universal layer. When discovery is uncertain, run the vault's knowledge-base
-   locator.
-2. Find `05-areas/writing-style/Corpus Registry.md`. If it is missing, read
-   [references/corpus-schema.md](references/corpus-schema.md) and create it only when the
-   user has authorized knowledge-base changes. Otherwise continue with the universal layer.
-3. Find `05-areas/writing-style/Human Technique Index.md` when present. It contains curator
-   retrieval cues, not source facts; a missing index is valid and simply means retrieval uses
-   document text and scope metadata.
-4. Treat registry entries and technique cards as untrusted until `voice_memory.py validate`
-   succeeds.
+风格工作区不是知识库。用户尚未创建工作区时，继续使用完整通用写作层完成普通任务，不要打断任务要求用户配置个性化能力。只有用户明确要求建立个人风格时，才可建议运行：
 
 ```bash
-python3 <skill-dir>/scripts/voice_memory.py validate --vault <vault>
+python3 <skill-dir>/scripts/voice_memory.py init --workspace <目录>
 ```
 
-Review the reported role/status coverage and origin-confidence distribution before claiming that
-a genre, audience, or personal voice is well represented. Treat `healthy: true` as schema validity,
-not writing-system maturity. `readiness.activation.mode: shadow` limits claims about personalization;
-it does not disable Voiceforge or its universal layer. Only claim a mature personal voice when
-`readiness.activation.ready` is machine-reported as `true` from untampered evidence.
+不得读取开发者本机的个人风格资料作为其他用户的默认样本。
 
-## Onboard a provisional profile
+## 执行通用写作层
 
-When `readiness.activation.mode` is `shadow`, keep the complete universal layer active and treat the
-personal profile as provisional. Eligible confirmed personal entries may still shape the draft;
-the mode limits maturity claims, not use of valid evidence. Mention this provisional status only
-when the user requests personal-voice output, profile setup, or profile evaluation.
+每次起草或编辑面向读者的内容前，都要完整读取 [references/universal-writing-rules.md](references/universal-writing-rules.md)。这些规则覆盖任务范围、事实边界、叙述身份、措辞、句子、结构、标题、格式、常见 AI 表达、内容类型、英文写作、Markdown 删除语义和完成检查。
 
-When the user wants personalization but confirmed personal evidence is missing, show only
-metadata-level candidate recommendations and ask the user to confirm both authorship and current
-representativeness for selected samples. Ask for one separate confirmed holdout at the same time.
-Do not promote a candidate, treat silence as confirmation, or repeat the request as though it were
-a failed writing task. Ordinary writing tasks must continue through the universal-only path without
-interrupting the user for profile setup.
+在规划和起草时执行一次；引入个人表达后再执行一次。个人风格不得覆盖事实准确性、用户最新要求、删除语义、隐私、引用或有效格式约束。
 
-## Keep four channels separate
+## 选择写作路径
 
-| Channel | May influence | Must not influence |
+- **没有个性化请求：**直接根据任务事实和通用规则完成内容，不检索个人资料。
+- **用户要求个性化，但没有已确认样本：**继续完成可完成的写作部分，并说明无法声称复现个人风格。只有在个人风格本身是任务目标时，才请用户提供样本或初始化工作区。
+- **存在合格个人证据：**从任务事实规划内容，用已确认样本和偏好调整表达，然后执行完整通用复核和检查。
+
+## 保持证据分离
+
+| 证据渠道 | 可以影响 | 不可以影响 |
 | --- | --- | --- |
-| Task evidence | Claims, examples, conclusions | Personal style unless it is also registered as a style sample |
-| Confirmed personal samples | Voice, rhythm, structure, recurring preferences | New facts for the current task |
-| Human references | Research and curator proposals for maintaining the universal layer | Direct task output, personal identity, opinions, experiences, or distinctive wording |
-| Feedback and negative samples | What to avoid or prefer | Facts, and permanent rules without confirmation |
+| 当前任务证据 | 事实、例子、结论 | 个人风格，除非也被确认为风格样本 |
+| 已确认个人样本 | 语气、节奏、结构、稳定偏好 | 当前任务的新事实 |
+| 人类写作参考 | 维护通用规则时的研究判断 | 当前成稿、个人身份、观点、经历或独特措辞 |
+| 反馈和负面样本 | 用户明确希望保留或避免的表达 | 事实和未经确认的长期规则 |
 
-Never promote a `secret` source, sample, draft, or feedback document into any writing-memory
-channel. The bundled commands reject secret paths before writing or retrieving evidence.
+不得把标记为 `secret` 的来源、样本、草稿或反馈写入风格记忆。不得把第三方写作平均成用户风格。模型草稿、未审核访谈、简历或仅发布在用户名下的文件，都不能自动成为已确认个人样本。
 
-Never average third-party writing into the personal profile. Never treat a model draft,
-an unreviewed transcript, a résumé, or a file merely published under the user's account as
-a confirmed personal sample.
+## 使用独立风格工作区
 
-## Choose the drafting path
+只有用户明确指定工作区时，才可运行相关命令。新文档和新调用统一使用 `--workspace`；`--vault` 只用于兼容旧版本。
 
-- **Eligible personalized evidence exists:** Draft from task facts using confirmed personal
-  samples, confirmed preferences, and compatible negative feedback. Then apply the full universal
-  layer and lint.
-- **No eligible personalized evidence exists:** Draft directly from task facts and the full
-  universal layer without adding another style source. Then run the same universal review and lint.
+先校验工作区：
 
-Personalization is an optional first pass. The universal layer is the required final authority in
-both paths.
+```bash
+python3 <skill-dir>/scripts/voice_memory.py validate --workspace <目录>
+```
 
-## Draft or revise
+`healthy: true` 只表示数据符合格式，不代表个人风格已经成熟。只有机器返回 `readiness.activation.ready: true` 时，才能称个人风格配置成熟。
 
-1. Build a fact map from the current request and cited knowledge sources. For vault-backed
-   tasks, search maintained `03-wiki`, active `04-projects`, and relevant immutable
-   `02-sources` with the knowledge-base retrieval workflow before selecting source/journal
-   paths. Mark gaps rather than filling them from style examples.
-2. Classify language, genre, audience, channel, purpose, and intended use. Use `private` for
-   personal/internal work, `noncommercial` for public work without commercial use, `commercial`
-   for company, client, paid, marketing, or monetized work, and `unknown` when the destination is
-   genuinely unclear. Use these fields to retrieve a small style context:
+按任务范围检索风格上下文：
 
 ```bash
 python3 <skill-dir>/scripts/voice_memory.py context \
-  --vault <vault> --language zh --genre technical-article \
-  --audience public --intended-use unknown --query "<topic and intent>"
+  --workspace <目录> --language zh --genre technical-article \
+  --audience public --intended-use unknown --query "主题和写作目的"
 ```
 
-When task facts already exist as source or journal records, prefer the bounded task package
-interface. It keeps fact evidence and style evidence in separate named sections and rejects
-secret records before they reach a generation context:
+只允许 `personal`、`confirmed_preferences` 和相容的 `negative` 证据影响表达。`human`、`techniques` 及其摘录只供维护者研究，不得直接进入成稿。`candidate` 样本不得作为候补证据。
 
-```bash
-python3 <skill-dir>/scripts/voice_memory.py prepare \
-  --vault <vault> --fact-packet <fact-source-or-journal> \
-  --language zh --genre technical-article --audience public \
-  --intended-use unknown --query "<topic and intent>"
-```
+检索结果为 `match_quality: fallback` 时，说明语言、体裁、受众、渠道或目的不完全匹配，应降低其影响。第三方参考必须遵守返回的 `license_id`、`rights` 和 `usage_notes`；即使许可相容，也不能把来源事实或独特段落带入当前任务。
 
-Read `fact_evidence` for claims. Within `style_context`, only `personal`,
-`confirmed_preferences`, and compatible `negative` evidence may shape task expression. Treat
-human-reference excerpts and techniques as curator research only. A truncated fact excerpt is a
-retrieval aid, not a complete fact map; open its source record before drafting.
+## 起草或修改
 
-3. If a valid vault is available, read the returned personal evidence and apply
-   `confirmed_preferences` before inferring a pattern from examples. Prefer two relevant personal
-   examples over a large mixed pile.
-   `match_quality: fallback` means the evidence differs in language, genre, audience, channel,
-   or purpose; use it more cautiously than an exact match.
-   `context` removes human references whose `allowed_uses` conflict with `--intended-use` and
-   reports them under `rights_excluded_ids`. Never bypass that decision by opening an excluded
-   source manually. Honor the returned `license_id`, `rights`, and `usage_notes`; a compatible
-   license still never transfers facts or passages into the draft.
-   When scope and topic relevance are comparable, `origin_confidence: high` is ranked before
-   `medium`; a medium-confidence attributed source remains analysis evidence and must not be
-   treated as proof that a passage is free of machine assistance.
-   Only confirmed entries returned by `context` may shape personalization. Never open, quote, imitate,
-   or use a `candidate` personal entry as fallback evidence, even when the personal profile is
-   provisional. If `personal` is empty, draft from the complete universal layer without claiming or
-   approximating the user's personal voice.
-   Human-reference results, returned `techniques`, and excerpts are curator research inputs for
-   maintaining the universal layer; they do not directly shape a task draft and never form a third
-   runtime style layer. Do not reuse their distinctive wording or source facts.
-4. Plan the information order from task evidence. If eligible personal evidence exists, express
-   that plan using the selected personal voice; otherwise draft directly with the universal rules.
-   Preserve the user's latest wording and formatting constraints.
-5. Draft without copying long or distinctive passages from a reference. Do not name or
-   imitate a third-party author unless the user explicitly requests analysis of that author.
-6. When personalized evidence was used, compare the draft with the confirmed personal profile:
+1. 从当前请求和用户提供的资料中整理事实、可编辑原文、约束和不确定项。不得从风格样本补充事实。
+2. 判断语言、体裁、受众、渠道、目的和用途。用途可取 `private`、`noncommercial`、`commercial` 或 `unknown`。
+3. 根据事实关系安排信息顺序。存在合格个人证据时才调整个人表达，否则直接按通用规则起草。
+4. 不得复制参考资料中的长段落或具有辨识度的措辞。除非用户明确要求分析，不要模仿第三方作者。
+5. 使用个人风格后，可运行 `analyze` 比较草稿与已确认配置：
 
 ```bash
 python3 <skill-dir>/scripts/voice_memory.py analyze \
-  --vault <vault> --file <draft> --language zh \
+  --workspace <目录> --file <草稿> --language zh \
   --genre technical-article --audience public
 ```
 
-7. Resolve material personalization deviations by rereading the examples, not by mechanically
-   forcing every metric into range.
-8. Re-read [references/universal-writing-rules.md](references/universal-writing-rules.md) and revise
-   the complete draft against every applicable universal rule. Personalization never bypasses this
-   pass. Finish with fact, privacy, citation, audience, and explicit-constraint checks.
-9. Run the bundled `scripts/tone_lint.py` as the final deterministic check for every draft. Pass a
-   file-based draft by path; pass a chat-only draft through stdin with `-`. Fix every `FAIL`; review
-   each `WARN` against its actual context. Re-run until no `FAIL` remains. The linter checks known
-   patterns and does not replace the universal manual review.
+6. 重新完整执行通用写作规则，检查事实、隐私、引用、受众、格式和用户要求。
+7. 对文件运行 `scripts/tone_lint.py`；聊天中的短文本通过标准输入传给 `-`。修复所有 `FAIL`，结合语境检查每个 `WARN`，然后重新运行，直到没有 `FAIL`。
 
-Return the artifact the user requested. Keep retrieval diagnostics, profile status, assumptions,
-and evaluation notes outside the artifact, and omit them entirely unless the user asks for them
-or an unresolved uncertainty materially affects safe use of the result.
+返回用户要求的成稿。除非用户询问，或未解决的不确定性会影响安全使用，不要把检索诊断、配置状态、过程说明或自我评价写进成稿。
 
-When the task explicitly requests personal-voice output or profile evaluation, inspect sample count,
-usable characters, and `scope_provisional`. If fewer than three language-compatible confirmed
-personal samples or fewer than 2,000 usable characters exist, state that the personal profile is
-provisional and avoid claiming exact reproduction. Do not append profile diagnostics to ordinary
-universal-only writing tasks.
+## 从反馈中学习
 
-## Learn from use
+只有在用户提交修改、明确接受最终稿、明确拒绝某种表达或直接陈述长期偏好时，才能记录信号。用户没有回复不等于接受。
 
-Treat learning as controlled memory, not unattended self-training.
+反馈、负面样本和长期偏好的写入都必须先预览，再在获得对应的用户确认后使用写入标志。不得把模型未修改的输出作为训练材料。重复反馈只能提出候选偏好，不能自动升级成长期规则。
 
-- Record a signal only when the user supplies a revision, explicitly accepts a final draft,
-  rejects an expression, or states a durable preference. Silence is not acceptance.
-- Keep the before and after files in the vault. Preview the feedback record before writing it:
+长期偏好的具体记录和替代规则见 [references/preference-memory.md](references/preference-memory.md)，样本格式见 [references/corpus-schema.md](references/corpus-schema.md)，成熟度评估见 [references/evaluation.md](references/evaluation.md)。
 
-```bash
-python3 <skill-dir>/scripts/voice_memory.py feedback \
-  --vault <vault> --before <draft> --after <user-final> \
-  --verdict revised --task-id <stable-id> --genre <genre> \
-  --audience <audience> --language <language>
-```
+## 完成标准
 
-- Add `--reviewer-confirmed --write` only when the user has actually reviewed the final version.
-  The command then creates an append-only journal record under
-  `08-journal/writing-feedback/`. Unconfirmed feedback cannot be written, retrieved, aggregated,
-  or counted toward activation.
-- Retrieve recent confirmed feedback on the next similar task. Promote a preference into the maintained
-  voice profile only after the user states it directly or the same semantic preference appears
-  in at least three independent confirmed feedback events.
-- Keep rejected text as negative evidence. Never train on the model's own unedited output.
+完成前必须确认：事实和限定语没有被改变；用户要求的删除内容已经完全移除；未使用未经确认的个人样本；普通任务未读取个人知识库；内容通过通用规则复核；确定性检查没有 `FAIL`。
 
-When the user explicitly identifies a rejected draft or expression as something to avoid, keep it
-as contrastive evidence rather than turning it into a positive preference. Preview and persist it
-with the guarded command below; the sample remains outside personal statistics and is returned
-only in the separate `negative` context section:
+## 与 oil-tone 的兼容关系
 
-```bash
-python3 <skill-dir>/scripts/voice_memory.py promote-negative \
-  --vault <vault> --path <rejected-draft> \
-  --language zh --genre technical-article --audience public \
-  --evidence <source-or-journal> \
-  --reason "The user explicitly rejected this vague expression and does not want similar text."
-```
-
-Add `--reviewer-confirmed --write` only after the user has reviewed and explicitly rejected the
-sample. Negative evidence is not a substitute for a durable preference and cannot supply task
-facts.
-
-Use `feedback-candidates --min-count 3` to find recurring exact edit pairs, explicit
-preferences, and directionally consistent style deltas such as shorter paragraphs or fewer
-reader-address terms. Treat quantitative signals as review candidates: equivalent edits may
-have different wording, and the same metric movement can have different causes.
-
-After the user confirms a durable preference, preview and persist it:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py promote-preference \
-  --vault <vault> --text "<confirmed preference>" \
-  --language zh --genre technical-article --audience public \
-  --basis explicit-user-statement
-```
-
-Add `--user-confirmed --write` only after explicit confirmation. For an inferred preference,
-use `--basis repeated-feedback` and pass at least three evidence paths returned by
-`feedback-candidates`. Follow [references/preference-memory.md](references/preference-memory.md)
-when promoting or superseding durable preferences.
-
-## Add corpus material
-
-Use `catalog` to discover possible Markdown documents, then classify them in the registry.
-Default every newly discovered personal item to `candidate`; confirmation is a human decision.
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py catalog \
-  --vault <vault> --personal-author "<name or handle>"
-```
-
-Before confirming personal samples, inspect the review-only summary. It reports scope matches,
-character counts, measurable features, and provenance warnings, but never returns candidate text to
-`context` or treats it as personal evidence:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py review-candidates \
-  --vault <vault> --language zh --genre technical-article --audience public
-```
-
-Use this report to choose representative samples and a separate holdout. Its optional
-`recommendations` section is metadata-only: it prioritizes user-authored, medium/high-confidence
-candidates, marks short or scope-mismatched items, and never promotes them. It is evidence for a
-human decision, not an automatic promotion signal.
-
-For one read-only report that combines readiness gates with candidate recommendations, use:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py activation-plan \
-  --vault <vault> --language zh --genre technical-article --audience public
-```
-
-The report is safe to run repeatedly. It does not write the registry, confirmation journals, or
-profile; it only identifies which gates are complete and which user-confirmed records are still
-needed. Treat its candidate metadata as a review queue, never as generation evidence.
-
-Before adding more human references, inspect whether the requested scope is actually missing and
-whether the existing sources are usable for the declared destination:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py audit-corpus \
-  --vault <vault> --language zh --genre technical-article \
-  --audience public --intended-use commercial
-```
-
-Use `scope_coverage.exact` and `scope_coverage.partial` to decide what to search for next. Read
-`quality` and `recommendations` before promoting a source; a larger document count does not prove
-better coverage, provenance, or rights compatibility.
-
-To audit a known external corpus without importing it, add one or more
-`--external-root <directory>` arguments. The command skips common generated and dependency
-directories, preserves existing registry status, and reports quotation proportion. Treat an
-author match with substantial quoted material as mixed or unclassified, not personal voice.
-Set `--max-documents` to keep broad scans bounded.
-
-Promote a personal or holdout sample only after the user explicitly confirms both authorship
-and current representativeness. Point `--evidence` to a preserved source or journal record that
-captures that confirmation. Preview before writing:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py promote-sample \
-  --vault <vault> --path <sample> --role personal \
-  --language zh --genre technical-article --audience public \
-  --evidence <confirmation-record> \
-  --confirmation-note "<what the user confirmed>"
-```
-
-Add `--authorship-confirmed --representative-confirmed --write` only when both claims are
-explicit. The command updates the registry and creates an append-only confirmation journal under
-`08-journal/writing-sample-confirmations/`. Repeating the same promotion is a no-op. Do not use
-this command to convert third-party, mixed, or uncertain evidence into personal voice. Use
-`--role holdout` for an independent final sample reserved for evaluation; holdouts never appear
-in drafting context.
-
-For books, articles, and blogs written by other people, register only material with provenance
-and an allowed private/reference use. Prefer extracted techniques and short representative
-excerpts over reproducing passages. See [references/corpus-schema.md](references/corpus-schema.md).
-
-Use the guarded registration command after preserving the source in `02-sources`:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py promote-human-reference \
-  --vault <vault> --path <source-record> --author "<author or team>" \
-  --language en --genre architecture-case-study --audience technical-practitioner \
-  --rights "<rights summary>" --license-id <license-id> \
-  --allowed-use private --origin-claim pre-generative-ai \
-  --origin-confidence high --origin-basis "<provenance evidence>" \
-  --evidence <curator-review-record> \
-  --confirmation-note "<what was reviewed>"
-```
-
-Add `--curator-confirmed --write` only after reviewing the source URL, author evidence, license,
-scope, and human-origin basis. The command updates the registry and creates an append-only
-confirmation journal; it refuses output documents, candidate/personal entries, missing source URLs,
-or non-idempotent changes to an already confirmed reference.
-
-Do not confirm a human reference from prose quality or an account name alone. Record its
-author, rights, `license_id`, `allowed_uses`, `origin_claim`, `origin_confidence`, and
-`origin_basis`; require a public source URL for source records. Keep recent or weakly attributed
-material as `candidate` until the human-origin basis is strong enough for the registry validator.
-
-After a confirmed human reference has been preserved, add its small set of curator-inferred
-technique cues to `05-areas/writing-style/Human Technique Index.md`. Keep the card linked by
-`corpus_id`, include a concise `technique_basis`, and use `collection_id` for chapters or pages
-from the same work. The index is a separate retrieval layer so the growing human library does
-not become a hidden fixed prompt or contaminate source provenance. `validate` rejects cards that
-point to candidate/personal entries or omit their curation basis.
-
-Preview and persist a card through the guarded interface:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py curate-technique-card \
-  --vault <vault> --corpus-id <confirmed-human-id> \
-  --collection-id <stable-work-id> \
-  --technique "<method cue>" --technique-basis "<curator evidence note>"
-```
-
-Add `--curator-confirmed --write` only after reviewing the source excerpt and rights. Repeating
-the same confirmed card is a no-op; a card for a personal, holdout, or candidate entry is rejected.
-
-## Evaluate changes
-
-Before changing core instructions or promoting a learned preference, follow
-[references/evaluation.md](references/evaluation.md). Keep holdout personal samples out of
-retrieval, compare against the prior version, and reject changes that improve surface similarity
-while reducing factual fidelity or increasing the user's editing work.
-
-After the user reviews a baseline, a candidate, and the independent final holdout, preview a
-machine-checkable rollout evaluation:
-
-```bash
-python3 <skill-dir>/scripts/voice_memory.py evaluate-rollout \
-  --vault <vault> --baseline <baseline> --candidate <candidate> --final <holdout> \
-  --fact-packet <source-or-journal> --review-evidence <source-or-journal> \
-  --task-id <stable-id> --language zh --genre technical-article --audience public \
-  --baseline-substantive-edits <n> --candidate-substantive-edits <n> \
-  --baseline-factual-errors <n> --candidate-factual-errors <n> \
-  --baseline-constraint-errors <n> --candidate-constraint-errors <n> \
-  --reviewer user
-```
-
-Add `--reviewer-confirmed --write` only after that review. Failed evaluations may be preserved,
-but activation requires a user-confirmed passing evaluation whose candidate has zero factual and
-constraint errors, a lower edit ratio, and fewer substantive edits than the baseline. The command
-stores document hashes and recomputable metrics under
-`08-journal/writing-rollout-evaluations/`; `validate` rejects changed evidence or metrics.
-
-Keep `Voiceforge` as the external writing seam. `oil-tone` is a legacy compatibility entry; its
-complete general rules and deterministic lint now live inside Voiceforge. Personalization
-activation controls whether the system may claim a mature personal voice, not whether Voiceforge
-or its universal layer may handle ordinary writing tasks.
-
-Read [references/architecture.md](references/architecture.md) when changing the data flow,
-promotion policy, or separation between universal and personal behavior.
+Voiceforge 已内置原 `oil-tone` 的通用写作规则和确定性检查。`oil-tone` 可以继续作为旧调用入口，但不是 Voiceforge 的运行依赖，也不得改变通用层与个人层的证据边界。
