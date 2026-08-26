@@ -6,7 +6,7 @@
 Voiceforge 是一个面向中文和英文写作的 Agent Skill。它包含一套始终生效的通用写作规则，也支持按需启用个人风格。普通写作不需要知识库、Obsidian 或任何个人资料；只有用户明确要求个性化时，才会读取用户主动提供并确认过的样本。
 
 <p align="center">
-  <img src="okassets/voiceforge-intro-zh.png" alt="Voiceforge 减少 AI 腔，并按需学习个人表达" width="100%" />
+  <img src="assets/voiceforge-intro-zh.png" alt="Voiceforge 减少 AI 腔，并按需学习个人表达" width="100%" />
 </p>
 
 ## 适用场景
