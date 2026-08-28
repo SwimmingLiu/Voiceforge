@@ -33,7 +33,7 @@ python3 <skill-dir>/scripts/voice_memory.py init --workspace <目录>
 
 ## 执行通用写作层
 
-每次起草或编辑面向读者的内容前，都要完整读取 [references/universal-writing-rules.md](references/universal-writing-rules.md)。这些规则覆盖任务范围、事实边界、叙述身份、措辞、句子、结构、标题、格式、常见 AI 表达、内容类型、英文写作、Markdown 删除语义和完成检查。
+每次起草或编辑面向读者的内容前，都要完整读取 [references/universal-writing-rules.md](references/universal-writing-rules.md)。这些规则覆盖任务范围、成稿边界、事实边界、叙述身份、措辞、句子、结构、标题、格式、常见 AI 表达、内容类型、英文写作、删除语义和完成检查。
 
 在规划和起草时执行一次；引入个人表达后再执行一次。个人风格不得覆盖事实准确性、用户最新要求、删除语义、隐私、引用或有效格式约束。
 
@@ -107,7 +107,7 @@ python3 <skill-dir>/scripts/voice_memory.py analyze \
 
 ## 完成标准
 
-完成前必须确认：事实和限定语没有被改变；用户要求的删除内容已经完全移除；未使用未经确认的个人样本；普通任务未读取个人知识库；内容通过通用规则复核；确定性检查没有 `FAIL`。
+完成前必须确认：事实和限定语没有被改变；没有加入任务范围之外的内容或把生成要求写进成稿；用户要求的删除内容及其否定改写已经完全移除；未使用未经确认的个人样本；普通任务未读取个人知识库；内容通过通用规则复核；确定性检查没有 `FAIL`。
 
 ## 与 oil-tone 的兼容关系
 
