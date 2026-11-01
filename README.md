@@ -49,7 +49,7 @@ ln -sfn /path/to/Voiceforge ~/.agents/skills/voiceforge
 python3 scripts/tone_lint.py /path/to/draft.md
 ```
 
-检测器支持中英文提示，并提供原始行号和稳定规则编号。自动化工具可以使用 `--format json`。`FAIL` 返回退出码 `1`，`WARN` 只要求人工复核。完整规则与语义边界见 [检测器参考](references/lint-reference.md)。
+检测器检查纯文本和 Markdown 中的已知表达模式，支持中英文提示。它排除代码、链接地址和隐藏 HTML 等非正文内容，并保留原始行号和稳定规则编号。自动化工具可以使用 `--format json`。`FAIL` 返回退出码 `1`，`WARN` 只要求人工复核。完整规则与语义边界见 [检测器参考](references/lint-reference.md)。
 
 ## 可选个人风格
 
@@ -60,6 +60,8 @@ python3 scripts/voice_memory.py init --workspace ~/.voiceforge
 ```
 
 普通任务不需要配置它。使用个人风格时，先确认作者身份和样本是否仍代表当前表达；候选样本不会自动参与生成。
+
+默认 `context` 和 `prepare` 不包含第三方参考摘录或方法卡片。维护通用写作规则时，用 `context --research` 显式检索研究材料，结果仍按用途许可筛选。
 
 ## 目录
 
@@ -80,6 +82,8 @@ python3 scripts/voice_memory.py init --workspace ~/.voiceforge
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
+
+GitHub Actions 在推送、PR 和手动触发时运行同一套回归测试，覆盖 Python 3.10 和 3.14。配置见 [CI 工作流](.github/workflows/ci.yml)。
 
 ## 参考项目
 
