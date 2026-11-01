@@ -9,8 +9,8 @@ description: 面向中文和英文读者内容的起草、改写、润色和定�
 
 Voiceforge 包含两层能力：
 
-1. **通用写作层：**读取并执行 [references/universal-writing-rules.md](references/universal-writing-rules.md)，完成后运行 `scripts/tone_lint.py`。这一层始终生效。
-2. **个人风格层：**只有用户明确要求个性化，并提供独立风格工作区或当前任务中的已确认样本时才启用。个人样本只影响语气、节奏、结构和稳定偏好。
+1. 通用写作层每次都读取并执行 [references/universal-writing-rules.md](references/universal-writing-rules.md)，完成后运行 `scripts/tone_lint.py`。
+2. 只有用户明确要求个性化，并提供独立风格工作区或当前任务中的已确认样本时，才启用个人风格层。个人样本只影响语气、节奏、结构和稳定偏好。
 
 执行顺序为：`任务证据 → 可选个性化 → 通用复核 → 确定性检查`。没有个人证据时，只跳过个性化，不得跳过通用写作层。
 
@@ -37,11 +37,13 @@ python3 <skill-dir>/scripts/voice_memory.py init --workspace <目录>
 
 在规划和起草时执行一次；引入个人表达后再执行一次。个人风格不得覆盖事实准确性、用户最新要求、删除语义、隐私、引用或有效格式约束。
 
+内置检查同时支持中文和英文。修复 `FAIL`，结合语境复核 `WARN`。没有提示不代表事实或语义已经正确；强行分组、术语轮换和省略含义仍需人工判断。规则编号、JSON 输出和正文排除范围见 [检测器参考](references/lint-reference.md)。
+
 ## 选择写作路径
 
-- **没有个性化请求：**直接根据任务事实和通用规则完成内容，不检索个人资料。
-- **用户要求个性化，但没有已确认样本：**继续完成可完成的写作部分，并说明无法声称复现个人风格。只有在个人风格本身是任务目标时，才请用户提供样本或初始化工作区。
-- **存在合格个人证据：**从任务事实规划内容，用已确认样本和偏好调整表达，然后执行完整通用复核和检查。
+- 没有个性化请求时，直接根据任务事实和通用规则完成内容，不检索个人资料。
+- 用户要求个性化但没有已确认样本时，继续完成可完成的写作部分，并说明无法声称复现个人风格。只有在个人风格本身是任务目标时，才请用户提供样本或初始化工作区。
+- 存在合格个人证据时，从任务事实规划内容，用已确认样本和偏好调整表达，然后执行完整通用复核和检查。
 
 ## 保持证据分离
 
@@ -74,7 +76,9 @@ python3 <skill-dir>/scripts/voice_memory.py context \
   --audience public --intended-use unknown --query "主题和写作目的"
 ```
 
-只允许 `personal`、`confirmed_preferences` 和相容的 `negative` 证据影响表达。`human`、`techniques` 及其摘录只供维护者研究，不得直接进入成稿。`candidate` 样本不得作为候补证据。
+只允许 `personal`、`confirmed_preferences` 和相容的 `negative` 证据影响表达。`human_reference` 及其中的 `techniques` 只供维护者研究，不得直接进入成稿。`candidate` 样本不得作为候补证据。
+
+默认 `context` 和 `prepare` 返回空的 `human_reference` 列表，不包含第三方摘录或方法卡片。维护通用写作规则时，显式使用 `context --research` 检索研究材料，并继续遵守用途许可。`--human-limit` 只设置研究数量，不能打开研究模式。
 
 检索结果为 `match_quality: fallback` 时，说明语言、体裁、受众、渠道或目的不完全匹配，应降低其影响。第三方参考必须遵守返回的 `license_id`、`rights` 和 `usage_notes`；即使许可相容，也不能把来源事实或独特段落带入当前任务。
 

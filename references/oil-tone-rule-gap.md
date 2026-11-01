@@ -27,4 +27,4 @@
 
 ## 检查脚本
 
-oil-tone 与 Voiceforge 的 `tone_lint.py` 各包含 29 个正则检测模式，语义上一一对应。Voiceforge 对第一条 `保重点、保逻辑` 等模式增加了前置边界，减少普通词组中的误报。上游没有需要补入本地的确定性检查模式，本次新增内容都属于需要结合语境人工判断的规则。
+Voiceforge 的检测器独立维护中英文模式、严重级别和规则编号。当前目录由 `python3 scripts/tone_lint.py --list-rules --format json` 输出；通用提示和人工复核的分工见 [检测器参考](lint-reference.md)。本文件中的上游对比只描述前述固定提交，不代表当前检测器与上游模式逐条对应。

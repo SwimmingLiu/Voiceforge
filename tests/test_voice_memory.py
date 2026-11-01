@@ -10,6 +10,8 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "voice_memory.py"
 
+# 第三方检索用例显式启用研究，保留原有排序和许可断言；默认成稿隔离另行验证。
+
 
 class VoiceMemoryTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -354,6 +356,7 @@ class VoiceMemoryTest(unittest.TestCase):
     def test_context_separates_roles_and_excludes_unconfirmed(self) -> None:
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--genre",
@@ -471,6 +474,7 @@ class VoiceMemoryTest(unittest.TestCase):
     def test_context_marks_cross_scope_human_reference_as_fallback(self) -> None:
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -530,6 +534,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -590,6 +595,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -623,6 +629,7 @@ class VoiceMemoryTest(unittest.TestCase):
         )
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -667,6 +674,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -713,6 +721,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -748,6 +757,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         commercial = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--intended-use",
@@ -763,6 +773,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         unknown = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--intended-use",
@@ -773,6 +784,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         noncommercial = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--intended-use",
@@ -854,6 +866,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -955,6 +968,7 @@ class VoiceMemoryTest(unittest.TestCase):
 
         result = self.run_cli(
             "context",
+            "--research",
             "--vault",
             str(self.vault),
             "--language",
@@ -2093,6 +2107,105 @@ class VoiceMemoryTest(unittest.TestCase):
         activated_readiness = json.loads(activated.stdout)["readiness"]
         self.assertTrue(activated_readiness["activation"]["ready"])
         self.assertEqual(activated_readiness["activation"]["mode"], "active")
+
+    def curate_research_material(self) -> str:
+        technique = "研究卡片专用标签，说明解释顺序。"
+        result = self.run_cli(
+            "curate-technique-card",
+            "--workspace",
+            str(self.vault),
+            "--corpus-id",
+            "human-1",
+            "--technique",
+            technique,
+            "--technique-basis",
+            "维护者根据已登记来源归纳，仅供研究。",
+            "--curator-confirmed",
+            "--write",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return technique
+
+    def test_draft_context_excludes_research_despite_legacy_human_limit(self) -> None:
+        technique = self.curate_research_material()
+        arguments = (
+            "context",
+            "--workspace",
+            str(self.vault),
+            "--intended-use",
+            "private",
+            "--human-limit",
+            "99",
+            "--query",
+            "technical article",
+        )
+        draft = self.run_cli(*arguments)
+        self.assertEqual(draft.returncode, 0, draft.stderr)
+        payload = json.loads(draft.stdout)
+        self.assertEqual(payload["scope"]["intended_use"], "private")
+        self.assertEqual(payload["human_reference"], [])
+        self.assertEqual(
+            payload["retrieval"]["human_reference"],
+            {
+                "returned": 0,
+                "fallback": 0,
+                "distinct_collections": 0,
+                "technique_annotated": 0,
+                "diversity_penalty": 0,
+                "rights_excluded": 0,
+                "rights_excluded_ids": [],
+            },
+        )
+        self.assertNotIn(technique, draft.stdout)
+        self.assertNotIn('"technique_card_id"', draft.stdout)
+        self.assertNotIn(
+            "A compact technical article introduces each term before using it.",
+            draft.stdout,
+        )
+
+        research = self.run_cli(*arguments, "--research")
+        self.assertEqual(research.returncode, 0, research.stderr)
+        reference = json.loads(research.stdout)["human_reference"][0]
+        self.assertEqual(reference["id"], "human-1")
+        self.assertEqual(reference["techniques"], [technique])
+
+    def test_prepare_cannot_enable_research_with_legacy_limit_or_flag(self) -> None:
+        technique = self.curate_research_material()
+        fact_path = "02-sources/draft-facts.md"
+        (self.vault / fact_path).write_text(
+            "---\ntype: source\nstatus: verified\n---\n\n"
+            "组件读取任务配置，校验输入字段，并返回具体错误原因。\n",
+            encoding="utf-8",
+        )
+        arguments = (
+            "prepare",
+            "--workspace",
+            str(self.vault),
+            "--fact-packet",
+            fact_path,
+            "--intended-use",
+            "private",
+            "--human-limit",
+            "99",
+        )
+        result = self.run_cli(*arguments)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["task"]["intended_use"], "private")
+        self.assertEqual(payload["fact_evidence"][0]["path"], fact_path)
+        self.assertEqual(payload["style_context"]["human_reference"], [])
+        self.assertEqual(payload["style_context"]["retrieval"]["human_reference"]["returned"], 0)
+        self.assertEqual(payload["style_context"]["retrieval"]["human_reference"]["technique_annotated"], 0)
+        self.assertNotIn(technique, result.stdout)
+        self.assertNotIn('"technique_card_id"', result.stdout)
+        self.assertNotIn(
+            "A compact technical article introduces each term before using it.",
+            result.stdout,
+        )
+
+        rejected = self.run_cli(*arguments, "--research")
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn("unrecognized arguments: --research", rejected.stderr)
 
     def test_validate_rejects_unproven_confirmed_human_reference(self) -> None:
         registry_path = self.vault / "05-areas/writing-style/Corpus Registry.md"
