@@ -1,9 +1,9 @@
 <div align="center">
   <h1>Voiceforge</h1>
-  <p><em>让 AI 写得像人在表达。</em></p>
+  <p>按通用写作规则起草和修改内容。</p>
 </div>
 
-Voiceforge 是一个面向中文和英文读者内容的 Agent Skill。它解决的问题是：AI 能生成文字，但文字不一定准确、清楚、自然，也不一定符合原始要求。Voiceforge 把事实、表达和约束放进同一个写作流程中处理。
+Voiceforge 是一个面向中文和英文内容的 Agent Skill。它从任务材料确认事实，按通用写作规则起草或修改内容，再复核约束并运行表达检查。
 
 <p align="center">
   <img src="assets/voiceforge-intro-zh.png" alt="Voiceforge 写作流程" width="100%" />
@@ -23,7 +23,7 @@ Voiceforge 按以下顺序工作：
 
 - 起草、改写、润色和校对中文或英文内容；
 - 新增、删除、替换、移动或重组内容，同时保留未受影响的部分；
-- 防止把用户指令、删除要求、修改说明和其他过程信息写回成稿；
+- 检查成稿是否混入用户指令、删除要求、修改说明和其他过程信息；
 - 减少多余标题、空泛铺垫、抽象管理词、模糊归因、重复总结和其他常见 AI 写作痕迹；
 - 检查事实、数字、标题、段落、主语、动作、对象、读者语境和格式；
 - 按用户确认的个人样本和偏好调整语气、节奏与结构。
@@ -49,6 +49,8 @@ ln -sfn /path/to/Voiceforge ~/.agents/skills/voiceforge
 python3 scripts/tone_lint.py /path/to/draft.md
 ```
 
+检测器支持中英文提示，并提供原始行号和稳定规则编号。自动化工具可以使用 `--format json`。`FAIL` 返回退出码 `1`，`WARN` 只要求人工复核。完整规则与语义边界见 [检测器参考](references/lint-reference.md)。
+
 ## 可选个人风格
 
 只有需要持久化个人表达时，才初始化独立风格工作区：
@@ -68,7 +70,10 @@ python3 scripts/voice_memory.py init --workspace ~/.voiceforge
 | `references/corpus-schema.md` | 个人风格工作区的数据格式 |
 | `scripts/voice_memory.py` | 风格工作区、检索、反馈和评估工具 |
 | `scripts/tone_lint.py` | 确定性表达检查工具 |
+| `scripts/_voiceforge/` | 按文本统计、证据、检索和检测划分的内部实现 |
 | `tests/` | 回归测试 |
+
+模块职责、依赖关系和架构取舍见 [架构说明](references/architecture.md)。复制 Skill 时保留整个目录，包括 `scripts/_voiceforge/`。直接运行原有脚本入口即可，不需要安装 Python 包。
 
 ## 验证
 
