@@ -1557,13 +1557,13 @@ def _context_payload(
     vault: Path, entries: list[dict[str, Any]], args: DraftQuery,
     research: ResearchQuery | None = None,
 ) -> dict[str, Any]:
-    technique_records, technique_issues = read_technique_records(vault, entries)
-    if technique_issues:
-        raise ValueError(
-            "invalid human technique index:\n- " + "\n- ".join(technique_issues)
-        )
-    # 默认草稿不得获得第三方方法；只有显式研究请求才关联方法卡片。
+    # 损坏的研究索引只应影响研究调用，成稿不读取方法卡片。
     if research is not None:
+        technique_records, technique_issues = read_technique_records(vault, entries)
+        if technique_issues:
+            raise ValueError(
+                "invalid human technique index:\n- " + "\n- ".join(technique_issues)
+            )
         entries = enrich_human_techniques(entries, technique_records)
     preferences, preference_issues = read_preference_records(vault)
     if preference_issues:
@@ -1711,7 +1711,8 @@ def prepare(
             "confirmed personal 只决定声音、节奏和结构，不提供当前任务事实。",
             "第三方参考摘录和方法卡片只供显式维护研究，不进入本次成稿上下文。",
             "candidate personal、holdout 和模型未修改输出不能进入生成上下文。",
-            "如果证据不足，保留不确定性并提出问题，不用风格样本补齐事实。",
+            # 缺少次要信息时仍能完成有证据支持的部分。
+            "证据不足时，先完成有依据的部分并保留限定。缺失信息实质影响交付且无法推断时再追问。",
         ],
         "warnings": warnings,
     }

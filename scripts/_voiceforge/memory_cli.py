@@ -335,7 +335,8 @@ def draft_query(args: argparse.Namespace) -> DraftQuery:
 
 
 def command_context(args: argparse.Namespace) -> dict[str, Any]:
-    root, entries = load_validated(args)
+    # 普通检索只需成稿证据。研究调用需要校验完整语料库和许可。
+    root, entries = load_validated(args, draft_only=not args.research)
     query = draft_query(args)
     if args.research:
         return research_context(root, entries, ResearchQuery(query, args.human_limit))
@@ -343,7 +344,8 @@ def command_context(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def command_prepare(args: argparse.Namespace) -> dict[str, Any]:
-    root, entries = load_validated(args)
+    # 准备事实材料时，第三方研究数据的故障不应阻断写作。
+    root, entries = load_validated(args, draft_only=True)
     return prepare(root, entries, draft_query(args), args.fact_packet, args.fact_limit)
 
 

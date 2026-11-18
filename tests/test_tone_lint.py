@@ -103,6 +103,19 @@ class ToneLintTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("FAIL  -:1", result.stdout)
 
+    def test_colloquial_quote_and_technical_term_do_not_block_a_draft(self) -> None:
+        result, diagnostics = self.json_diagnostics(
+            "原始访谈保留原话：“这次我来跑测试。”\n"
+            "系统使用闭环控制稳定温度。\n"
+            "页面于周五更新。\n"
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            [(item["rule_id"], item["severity"], item["line"]) for item in diagnostics],
+            [("vf-009", "WARN", 1), ("vf-012", "WARN", 2)],
+        )
+
     def test_unslop_warnings_cover_english_stock_expressions(self) -> None:
         examples = {
             "unslop-3": "The update adds caching, highlighting the importance of speed.",
@@ -396,10 +409,11 @@ class ToneLintTests(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
         expected_unslop = {f"unslop-{number}" for number in (3, 5, 7, 8, 9, 13, 16, 18, 19, 20, 22, 23, 24, 25, 26, 30, 31, 32)}
         self.assertEqual(set(ids), {f"vf-{number:03d}" for number in range(1, 33)} | expected_unslop)
+        blocking_rules = {f"vf-{number:03d}" for number in range(1, 18)} - {"vf-009", "vf-012"}
         for item in rules:
             self.assertEqual(set(item), {"rule_id", "severity", "message", "source_rule"})
             self.assertTrue(item["message"])
-            expected = "FAIL" if item["rule_id"] in {f"vf-{number:03d}" for number in range(1, 18)} else "WARN"
+            expected = "FAIL" if item["rule_id"] in blocking_rules else "WARN"
             self.assertEqual(item["severity"], expected)
 
     def test_json_and_text_use_the_same_findings_and_failure_status(self) -> None:

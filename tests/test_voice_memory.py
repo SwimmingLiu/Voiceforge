@@ -2207,6 +2207,56 @@ class VoiceMemoryTest(unittest.TestCase):
         self.assertEqual(rejected.returncode, 2)
         self.assertIn("unrecognized arguments: --research", rejected.stderr)
 
+    def test_research_damage_does_not_block_draft_context_or_prepare(self) -> None:
+        workspace = ("--workspace", str(self.vault))
+        fact_path = "02-sources/draft-facts.md"
+        fact_text = "组件校验失败时会返回字段和原因。"
+        (self.vault / fact_path).write_text(
+            f"---\ntype: source\nstatus: verified\n---\n\n{fact_text}\n",
+            encoding="utf-8",
+        )
+        technique_index = self.vault / "05-areas/writing-style/Human Technique Index.md"
+
+        for missing_source in (False, True):
+            if missing_source:
+                technique_index.unlink()
+                (self.vault / "02-sources/human.md").unlink()
+                issue = "Markdown file not found: 02-sources/human.md"
+            else:
+                technique_index.write_text("```jsonl\n{broken\n```\n", encoding="utf-8")
+                issue = "human technique jsonl line 1"
+            with self.subTest(issue=issue):
+                draft = self.run_cli("context", *workspace)
+                self.assertEqual(draft.returncode, 0, draft.stderr)
+                context = json.loads(draft.stdout)
+                self.assertEqual({item["id"] for item in context["personal"]}, {
+                    "personal-0", "personal-1", "personal-2",
+                })
+                self.assertEqual(context["human_reference"], [])
+
+                prepared = self.run_cli("prepare", *workspace, "--fact-packet", fact_path)
+                self.assertEqual(prepared.returncode, 0, prepared.stderr)
+                payload = json.loads(prepared.stdout)
+                self.assertIn(fact_text, payload["fact_evidence"][0]["excerpt"])
+                self.assertEqual(payload["style_context"], context)
+
+                research = self.run_cli("context", *workspace, "--research")
+                self.assertEqual(research.returncode, 2, research.stdout)
+                self.assertIn(issue, research.stderr)
+                validation = self.run_cli("validate", *workspace)
+                self.assertEqual(validation.returncode, 1, validation.stderr)
+                self.assertIn(issue, validation.stdout)
+
+    def test_draft_context_still_rejects_secret_confirmed_samples(self) -> None:
+        sample = self.vault / "06-output/published/personal-0.md"
+        sample.write_text("---\nsensitivity: secret\n---\n\n受保护的内容。\n", encoding="utf-8")
+
+        result = self.run_cli("context", "--workspace", str(self.vault))
+
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn("secret documents cannot be registered", result.stderr)
+        self.assertNotIn("受保护的内容", result.stdout + result.stderr)
+
     def test_validate_rejects_unproven_confirmed_human_reference(self) -> None:
         registry_path = self.vault / "05-areas/writing-style/Corpus Registry.md"
         registry = registry_path.read_text(encoding="utf-8")
