@@ -1,4 +1,4 @@
 interface:
   display_name: "Voiceforge"
-  short_description: "用通用写作规则减少 AI 腔，并按需使用个人风格"
-  default_prompt: "使用 $voiceforge 起草或修改这段内容。普通任务不要读取个人知识库；只有我明确要求并提供已确认样本或独立风格工作区时，才使用个人风格。最后执行完整通用写作规则和内置检查。"
+  short_description: "保留事实和修改范围，起草或审校中英文成稿"
+  default_prompt: "使用 $voiceforge 起草或修改这段内容。保留任务事实和指定范围，直接交付成稿。"

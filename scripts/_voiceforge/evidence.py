@@ -963,9 +963,18 @@ def user_confirmed_feedback_events(vault: Path) -> list[dict[str, Any]]:
     ]
 
 
-def load_validated(args: argparse.Namespace) -> tuple[Path, list[dict[str, Any]]]:
+def load_validated(
+    args: argparse.Namespace, *, draft_only: bool = False
+) -> tuple[Path, list[dict[str, Any]]]:
     vault = Path(args.vault).expanduser().resolve()
     entries, parse_issues = read_registry(registry_path(vault, args.registry))
+    if draft_only:
+        # 研究来源缺失时仍可使用合格个人证据。共享索引解析错误和入选证据的校验照常报告。
+        entries = [
+            entry for entry in entries
+            if (entry.get("role"), entry.get("status"))
+            in (("personal", "confirmed"), ("negative", "rejected"))
+        ]
     issues = validate_entries(vault, entries, parse_issues)
     if issues:
         raise ValueError("invalid corpus registry:\n- " + "\n- ".join(issues))

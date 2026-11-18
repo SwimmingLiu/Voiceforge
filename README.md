@@ -10,7 +10,7 @@ Voiceforge 是面向中文与英文内容的 Agent Skill，把任务材料、写
 
 一段话改得流畅，仍可能偏离任务要求，例如加入材料之外的事实、把删除操作写回正文，或让个人风格覆盖原意。Voiceforge 围绕这些编辑边界组织写作流程。
 
-通用规则先约束改动范围和事实依据，再处理表达与格式。Agent 据此起草、改写和复核，Python 检测器补充可重复执行的表达检查。事实是否有依据、修改是否保留原意，仍由 Agent 结合任务材料判断。
+Skill 入口定义改动范围、事实依据和交付检查，体裁与格式细则按需读取。Agent 据此起草、改写和复核，Python 检测器补充可重复执行的表达检查。事实是否有依据、修改是否保留原意，仍由 Agent 结合任务材料判断。
 
 ## 开始使用
 
@@ -40,7 +40,7 @@ python3 scripts/tone_lint.py --format json /path/to/draft.md
 
 检测器扫描纯文本和 Markdown 中的已知中英文表达模式，跳过代码、链接地址和 HTML 注释等非正文内容，保留原始行号和稳定规则编号。它只报告诊断，不修改输入文件，文本和 JSON 输出共用同一套结果。
 
-`FAIL` 使进程返回退出码 `1`，`WARN` 需要结合上下文复核。自动化接入、输出约定和完整规则见 [检测器参考](references/lint-reference.md)。
+`FAIL` 使进程返回退出码 `1`，`WARN` 需要结合上下文复核。局部编辑时用诊断行号对照本次改动，保留受保护引文、术语和范围外的原文。自动化接入、输出约定和完整规则见 [检测器参考](references/lint-reference.md)。
 
 ## 需要个人风格时
 
@@ -52,11 +52,11 @@ python3 scripts/voice_memory.py init --workspace ~/.voiceforge
 
 个人证据只影响语气、节奏与结构，不能替代当前任务的事实。候选样本不参与生成，写入样本、偏好和反馈需要对应的用户确认。数据格式与确认要求见 [语料索引格式](references/corpus-schema.md)。
 
-第三方参考只用于维护研究。默认 `context` 和 `prepare` 不返回参考摘录或方法卡片。维护通用写作规则时，用 `context --research` 显式检索，结果仍按用途许可筛选。
+第三方参考只用于维护研究。默认 `context` 和 `prepare` 只校验可入选的成稿证据。完整工作区校验使用 `validate`。检索、准备材料和维护研究的命令见 [个人风格工作区](references/personal-style.md)。
 
 ## 实现与开发
 
-宿主从 [SKILL.md](SKILL.md) 和 [通用写作规则](references/universal-writing-rules.md) 读取工作流程。`scripts/tone_lint.py` 执行表达检查，`scripts/voice_memory.py` 管理风格证据、检索与评估。
+宿主从 [SKILL.md](SKILL.md) 进入写作流程，按需读取 [通用写作参考](references/universal-writing-rules.md)。`scripts/tone_lint.py` 执行表达检查，`scripts/voice_memory.py` 管理风格证据、检索与评估。
 
 命令行入口负责参数和输出。内部的 `evidence.py` 统一处理工作区写入，`memory.py` 计算检索与报告，`lint.py` 独立执行表达检测。模块位于 `scripts/_voiceforge/`，分发时保留完整 Skill 目录。职责、依赖关系与设计取舍见 [架构说明](references/architecture.md)。
 

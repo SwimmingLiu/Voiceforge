@@ -31,8 +31,8 @@ class Diagnostic:
 	source_rule: str | None = None
 
 
-# Keep the existing blocking policy during extraction. Unslop signals need
-# context, so the additional rules below only request review.
+# Verbatim speech and engineering terminology can match vf-009 and vf-012.
+# Keep those rule IDs as review hints so the detector does not force a rewrite.
 RULES: tuple[Rule, ...] = (
 	Rule("vf-001", "FAIL", re.compile(r"先保哪一个|(?:^|[，。！？；：、\s]|先|只|要|得|该|需要|应该|必须|优先)保(?:重点|逻辑|意思|准确|清楚|自然|风格|质量|结构)"), "改用遵循、保留、确保等准确动词。"),
 	Rule("vf-002", "FAIL", re.compile(r"(?:一个|这个)?(?:代码)?问题.{0,8}怎么走"), "直接说明通常如何处理代码问题。"),
@@ -42,10 +42,10 @@ RULES: tuple[Rule, ...] = (
 	Rule("vf-006", "FAIL", re.compile(r"(?:问题|流程|事情|能力|价值).{0,6}落(?:下去|到|地)"), "说明具体的实现或处理动作。"),
 	Rule("vf-007", "FAIL", re.compile(r"(?:吃下|吞下).{0,10}(?:对话|内容|信息|上下文)"), "改用读取、接收、包含等准确动词。"),
 	Rule("vf-008", "FAIL", re.compile(r"(?:把)?(?:内容|信息|上下文).{0,8}(?:塞进|塞到|喂给)"), "改用写入、添加、提供等准确动词。"),
-	Rule("vf-009", "FAIL", re.compile(r"跑测试"), "使用“运行测试”等规范表达。"),
+	Rule("vf-009", "WARN", re.compile(r"跑测试"), "按受众选择用词。原样引文保留原话。"),
 	Rule("vf-010", "FAIL", re.compile(r"(?:搞|弄)(?:顺|清楚|明白|好|完|懂|定|起来|下去)"), "不要使用含义模糊的单字动词，写明具体动作和结果。"),
 	Rule("vf-011", "FAIL", re.compile(r"承接(?:需求|任务|工作|内容)"), "改用处理、负责、实现等准确动词。"),
-	Rule("vf-012", "FAIL", re.compile(r"(?:赋能|撬动|抓手|闭环|沉淀价值|价值落地)"), "删除宣传式术语，直接说明具体效果。"),
+	Rule("vf-012", "WARN", re.compile(r"(?:赋能|撬动|抓手|闭环|沉淀价值|价值落地)"), "保留含义明确的术语。宣传式表达改为具体动作或结果。"),
 	Rule("vf-013", "FAIL", re.compile(r"原因很简单[：:，,。]?"), "删除套话，直接说明实际原因。"),
 	Rule("vf-014", "FAIL", re.compile(r"(?:真正重要的是|真正的关键是|这不仅仅?是|从更大的角度看)"), "删除没有新增信息的总结或拔高。"),
 	Rule("vf-015", "FAIL", re.compile(r"(?:总而言之|综上所述)[，,：:]?(?:我们)?(?:已经|可以|能够)?(?:理解|明白|完成|实现|看出|看到)"), "删除替正文宣布结束的句子，直接在最后一项事实或判断处结束。"),
